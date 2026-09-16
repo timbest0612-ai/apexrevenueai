@@ -1,0 +1,117 @@
+{
+  "entities": {
+    "Contact": {
+      "title": "Contact",
+      "description": "Lead and customer record in the CRM with enrichments and verification status",
+      "type": "object",
+      "properties": {
+        "id": { "type": "string", "maxLength": 128 },
+        "orgId": { "type": "string", "maxLength": 128 },
+        "firstName": { "type": "string", "maxLength": 120 },
+        "lastName": { "type": "string", "maxLength": 120 },
+        "email": { "type": "string", "maxLength": 254 },
+        "companyName": { "type": "string", "maxLength": 150 },
+        "jobTitle": { "type": "string", "maxLength": 150 },
+        "seniority": { "type": "string", "maxLength": 50 },
+        "country": { "type": "string", "maxLength": 100 },
+        "city": { "type": "string", "maxLength": 100 },
+        "timezone": { "type": "string", "maxLength": 100 },
+        "status": { "type": "string", "enum": ["NEW", "VERIFIED", "CONTACTED", "OPENED", "CLICKED", "REPLIED", "MQL", "SQL", "OPPORTUNITY", "CUSTOMER", "UNQUALIFIED", "CHURNED"] },
+        "revenueTotal": { "type": "number" },
+        "source": { "type": "string", "maxLength": 100 },
+        "createdAt": { "type": "string", "format": "date-time" },
+        "updatedAt": { "type": "string", "format": "date-time" }
+      },
+      "required": ["id", "orgId", "email", "firstName", "companyName", "status", "createdAt", "updatedAt"]
+    },
+    "Campaign": {
+      "title": "Campaign",
+      "description": "Multi-channel automated outreach campaign",
+      "type": "object",
+      "properties": {
+        "id": { "type": "string", "maxLength": 128 },
+        "orgId": { "type": "string", "maxLength": 128 },
+        "name": { "type": "string", "maxLength": 200 },
+        "channel": { "type": "string", "enum": ["email", "whatsapp", "omnichannel"] },
+        "status": { "type": "string", "enum": ["ACTIVE", "PAUSED", "COMPLETED", "DRAFT"] },
+        "createdAt": { "type": "string", "format": "date-time" },
+        "updatedAt": { "type": "string", "format": "date-time" }
+      },
+      "required": ["id", "orgId", "name", "channel", "status", "createdAt"]
+    },
+    "SmartInboxThread": {
+      "title": "SmartInboxThread",
+      "description": "Unified AI-triaged omnichannel communication thread",
+      "type": "object",
+      "properties": {
+        "id": { "type": "string", "maxLength": 128 },
+        "orgId": { "type": "string", "maxLength": 128 },
+        "contactName": { "type": "string", "maxLength": 150 },
+        "contactEmail": { "type": "string", "maxLength": 254 },
+        "companyName": { "type": "string", "maxLength": 150 },
+        "channel": { "type": "string", "enum": ["email", "whatsapp", "linkedin"] },
+        "sentiment": { "type": "string", "maxLength": 50 },
+        "status": { "type": "string", "enum": ["OPEN", "REPLIED", "RESOLVED", "SNOOZED"] },
+        "lastActivity": { "type": "string", "maxLength": 100 },
+        "updatedAt": { "type": "string", "format": "date-time" }
+      },
+      "required": ["id", "orgId", "contactName", "contactEmail", "companyName", "channel", "sentiment", "status"]
+    },
+    "WebhookEvent": {
+      "title": "WebhookEvent",
+      "description": "Ingested live webhook event from external provider",
+      "type": "object",
+      "properties": {
+        "id": { "type": "string", "maxLength": 128 },
+        "orgId": { "type": "string", "maxLength": 128 },
+        "provider": { "type": "string", "enum": ["GMAIL", "OUTLOOK", "WHATSAPP", "CUSTOM"] },
+        "eventType": { "type": "string", "maxLength": 100 },
+        "payloadSummary": { "type": "string", "maxLength": 500 },
+        "status": { "type": "string", "enum": ["PROCESSED", "PENDING", "FAILED"] },
+        "timestamp": { "type": "string", "format": "date-time" }
+      },
+      "required": ["id", "orgId", "provider", "eventType", "status", "timestamp"]
+    },
+    "UserProfile": {
+      "title": "UserProfile",
+      "description": "User profile with plan details and trial state",
+      "type": "object",
+      "properties": {
+        "id": { "type": "string", "maxLength": 128 },
+        "email": { "type": "string", "maxLength": 254 },
+        "fullName": { "type": "string", "maxLength": 150 },
+        "avatarUrl": { "type": "string", "maxLength": 500 },
+        "isSuperAdmin": { "type": "boolean" },
+        "plan": { "type": "string", "enum": ["TRIAL_SANDBOX", "STARTER", "PRO", "BUSINESS", "AGENCY", "LIFETIME_VIP"] },
+        "role": { "type": "string", "enum": ["OWNER", "ADMIN", "MANAGER", "MARKETER", "SALES", "ANALYST", "VIEWER"] },
+        "trialStartedAt": { "type": "string", "format": "date-time" },
+        "trialExpiresAt": { "type": "string", "format": "date-time" },
+        "createdAt": { "type": "string", "format": "date-time" },
+        "updatedAt": { "type": "string", "format": "date-time" }
+      },
+      "required": ["id", "email", "fullName", "plan", "role"]
+    }
+  },
+  "firestore": {
+    "/users/{userId}": {
+      "schema": { "$ref": "#/entities/UserProfile" },
+      "description": "User profile and authentication subscription state"
+    },
+    "/organizations/{orgId}/contacts/{contactId}": {
+      "schema": { "$ref": "#/entities/Contact" },
+      "description": "Multi-tenant contacts partitioned by organization"
+    },
+    "/organizations/{orgId}/campaigns/{campaignId}": {
+      "schema": { "$ref": "#/entities/Campaign" },
+      "description": "Outreach campaigns for an organization"
+    },
+    "/organizations/{orgId}/threads/{threadId}": {
+      "schema": { "$ref": "#/entities/SmartInboxThread" },
+      "description": "Omnichannel inbox threads for an organization"
+    },
+    "/organizations/{orgId}/webhooks/{webhookId}": {
+      "schema": { "$ref": "#/entities/WebhookEvent" },
+      "description": "Live external webhook ingestion events"
+    }
+  }
+}

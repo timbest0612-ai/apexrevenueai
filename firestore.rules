@@ -1,0 +1,71 @@
+rules_version = '2';
+service cloud.firestore {
+  match /databases/{database}/documents {
+
+    // 1. Global Default-Deny Catch-All
+    match /{document=**} {
+      allow read, write: if false;
+    }
+
+    // Helper functions
+    function isSignedIn() {
+      return request.auth != null;
+    }
+
+    function isValidId(id) {
+      return id is string && id.size() <= 128 && id.matches('^[a-zA-Z0-9_\\-]+$');
+    }
+
+    function incoming() {
+      return request.resource.data;
+    }
+
+    function existing() {
+      return resource.data;
+    }
+
+    // Test connection doc
+    match /test/{testId} {
+      allow read, write: if true;
+    }
+
+    // User Profile Documents
+    match /users/{userId} {
+      allow read: if isSignedIn() && (request.auth.uid == userId || request.auth.token.email == 'timbest0612@gmail.com');
+      allow create, update: if isSignedIn() && (request.auth.uid == userId || request.auth.token.email == 'timbest0612@gmail.com') && isValidId(userId);
+      allow delete: if isSignedIn() && (request.auth.uid == userId || request.auth.token.email == 'timbest0612@gmail.com') && isValidId(userId);
+    }
+
+    // Organization data paths
+    match /organizations/{orgId} {
+      allow read, write: if isSignedIn() && isValidId(orgId);
+
+      match /contacts/{contactId} {
+        allow read: if isSignedIn() && isValidId(orgId);
+        allow create: if isSignedIn() && isValidId(orgId) && isValidId(contactId) &&
+          incoming().id is string && incoming().orgId == orgId;
+        allow update: if isSignedIn() && isValidId(orgId) && isValidId(contactId) &&
+          incoming().orgId == existing().orgId;
+        allow delete: if isSignedIn() && isValidId(orgId) && isValidId(contactId);
+      }
+
+      match /campaigns/{campaignId} {
+        allow read: if isSignedIn() && isValidId(orgId);
+        allow create, update: if isSignedIn() && isValidId(orgId) && isValidId(campaignId);
+        allow delete: if isSignedIn() && isValidId(orgId) && isValidId(campaignId);
+      }
+
+      match /threads/{threadId} {
+        allow read: if isSignedIn() && isValidId(orgId);
+        allow create, update: if isSignedIn() && isValidId(orgId) && isValidId(threadId);
+        allow delete: if isSignedIn() && isValidId(orgId) && isValidId(threadId);
+      }
+
+      match /webhooks/{webhookId} {
+        allow read: if isSignedIn() && isValidId(orgId);
+        allow create, update: if isSignedIn() && isValidId(orgId) && isValidId(webhookId);
+        allow delete: if isSignedIn() && isValidId(orgId) && isValidId(webhookId);
+      }
+    }
+  }
+}

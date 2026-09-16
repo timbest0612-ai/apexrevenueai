@@ -1,0 +1,6 @@
+{
+  "name": "ApexRevenue AI",
+  "description": "AI Customer Acquisition & Revenue Automation SaaS platform combining global lead discovery, verification, CRM, AI scoring, email marketing, and revenue attribution.",
+  "requestFramePermissions": [],
+  "majorCapabilities": ["MAJOR_CAPABILITY_SERVER_SIDE_GEMINI_API"]
+}
