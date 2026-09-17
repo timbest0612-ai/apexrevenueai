@@ -205,6 +205,9 @@ export interface LeadDiscoveryFilter {
   techStack?: string[];
   jobTitle?: string;
   keywords?: string;
+  painPoint?: string;
+  targetAudience?: string;
+  whatTheySell?: string;
   provider?: 'auto' | 'apollo' | 'hunter' | 'tomba' | 'global_registry';
 }
 
@@ -223,6 +226,10 @@ export interface DiscoveredLead {
   domainProviderType?: string;
   industry: string;
   targetCategory?: LeadTargetCategory;
+  painPoint?: string;
+  targetAudience?: string;
+  whatTheySell?: string;
+  solutionFitReason?: string;
   schoolOrUniversity?: string;
   courseOrDegree?: string;
   cryptoNiche?: string;
@@ -532,6 +539,8 @@ export type GlobalRegion =
 
 export interface GlobalScoutFilter {
   whatTheySell: string; // e.g. "E-commerce fashion", "B2B SaaS CRM", "Digital Marketing Retainers", "Commercial Real Estate"
+  painPoint?: string; // e.g. "Losing 30% pipeline to manual followups", "High customer acquisition cost"
+  targetAudience?: string; // e.g. "Mid-market B2B SaaS", "Shopify brands", "Clinic owners"
   industry?: string;
   targetRegion: GlobalRegion;
   targetCategory?: LeadTargetCategory;

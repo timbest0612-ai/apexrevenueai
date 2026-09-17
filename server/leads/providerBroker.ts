@@ -493,100 +493,33 @@ Return a JSON with:
 
 // Discover Leads based on active filters
 export async function discoverLeads(filter: LeadDiscoveryFilter): Promise<DiscoveredLead[]> {
-  let matched = [...GLOBAL_LEAD_CATALOG];
+  // Directly scout dynamic, context-aware leads matched to the user's category, pain point, and business focus
+  const region = (filter.country === 'Nigeria' || filter.country === 'Kenya' || filter.country === 'Ghana' || filter.country === 'South Africa'
+    ? 'AFRICA'
+    : filter.country === 'United States' || filter.country === 'Canada'
+    ? 'NORTH_AMERICA'
+    : filter.country === 'United Kingdom' || filter.country === 'Germany' || filter.country === 'France'
+    ? 'UK_AND_EUROPE'
+    : 'GLOBAL') as any;
 
-  if (filter.targetCategory) {
-    if (filter.targetCategory === 'INDIVIDUALS') {
-      matched = matched.filter(l => 
-        l.targetCategory === 'INDIVIDUALS' || 
-        l.targetCategory === 'STUDENTS_ACADEMIC' || 
-        l.targetCategory === 'CRYPTO_WEB3' || 
-        l.targetCategory === 'INDIVIDUALS_B2C'
-      );
-    } else if (filter.targetCategory === 'BUSINESS') {
-      matched = matched.filter(l => 
-        l.targetCategory === 'BUSINESS' || 
-        l.targetCategory === 'BUSINESS_B2B' || 
-        l.targetCategory === 'HOT_NICHES_BRANDS'
-      );
-    } else {
-      matched = matched.filter(l => l.targetCategory === filter.targetCategory);
-    }
-  }
+  const scout = await scoutGlobalHighVolumeLeads({
+    whatTheySell: filter.whatTheySell || filter.keywords || filter.naturalLanguage || filter.industry || 'B2B Enterprise Software & Solutions',
+    painPoint: filter.painPoint,
+    targetAudience: filter.targetAudience,
+    industry: filter.industry,
+    targetRegion: region,
+    targetCategory: filter.targetCategory || 'BUSINESS_B2B',
+    domainProvider: filter.domainProvider || 'ALL_DOMAINS',
+    schoolOrUniversity: filter.schoolOrUniversity,
+    department: filter.department,
+    courseOrDegree: filter.courseOrDegree,
+    cryptoNiche: filter.cryptoNiche,
+    brandNiche: filter.brandNiche,
+    keywords: filter.keywords || filter.naturalLanguage,
+    leadVolume: 50,
+  });
 
-  if (filter.domainProvider && filter.domainProvider !== 'ALL_DOMAINS') {
-    matched = matched.filter(l => l.domainProviderType === filter.domainProvider);
-  }
-
-  if (filter.country && filter.country !== 'All') {
-    matched = matched.filter(l => l.country.toLowerCase().includes(filter.country!.toLowerCase()));
-  }
-
-  if (filter.city) {
-    matched = matched.filter(l => l.city.toLowerCase().includes(filter.city!.toLowerCase()));
-  }
-
-  if (filter.industry && filter.industry !== 'All') {
-    matched = matched.filter(l => l.industry.toLowerCase().includes(filter.industry!.toLowerCase()));
-  }
-
-  if (filter.schoolOrUniversity && filter.schoolOrUniversity !== 'All') {
-    matched = matched.filter(l => l.schoolOrUniversity?.toLowerCase().includes(filter.schoolOrUniversity!.toLowerCase()) || l.companyName.toLowerCase().includes(filter.schoolOrUniversity!.toLowerCase()));
-  }
-
-  if (filter.department && filter.department !== 'All') {
-    matched = matched.filter(l => l.department?.toLowerCase().includes(filter.department!.toLowerCase()));
-  }
-
-  if (filter.courseOrDegree && filter.courseOrDegree !== 'All') {
-    matched = matched.filter(l => l.courseOrDegree?.toLowerCase().includes(filter.courseOrDegree!.toLowerCase()));
-  }
-
-  const searchWords = (filter.keywords || filter.naturalLanguage || '').trim().toLowerCase();
-  if (searchWords) {
-    const terms = searchWords.split(/[\s,]+/).filter(t => t.length > 2 && !['find', 'leads', 'with', 'from', 'the', 'and', 'for', 'all', 'mine', 'search'].includes(t));
-    if (terms.length > 0) {
-      matched = matched.filter(l => 
-        terms.some(kw => 
-          l.fullName.toLowerCase().includes(kw) ||
-          l.companyName.toLowerCase().includes(kw) ||
-          l.jobTitle.toLowerCase().includes(kw) ||
-          (l.schoolOrUniversity && l.schoolOrUniversity.toLowerCase().includes(kw)) ||
-          (l.department && l.department.toLowerCase().includes(kw)) ||
-          (l.courseOrDegree && l.courseOrDegree.toLowerCase().includes(kw)) ||
-          (l.cryptoNiche && l.cryptoNiche.toLowerCase().includes(kw)) ||
-          (l.brandNiche && l.brandNiche.toLowerCase().includes(kw)) ||
-          (l.industry && l.industry.toLowerCase().includes(kw)) ||
-          (l.country && l.country.toLowerCase().includes(kw)) ||
-          (l.city && l.city.toLowerCase().includes(kw)) ||
-          (l.domainProviderType && l.domainProviderType.toLowerCase().includes(kw)) ||
-          l.email.toLowerCase().includes(kw) ||
-          l.techStack.some(t => t.toLowerCase().includes(kw))
-        )
-      );
-    }
-  }
-
-  // If no leads matched the narrow catalog, generate dynamically on the fly to fulfill user query
-  if (matched.length === 0) {
-    const scout = await scoutGlobalHighVolumeLeads({
-      whatTheySell: filter.keywords || filter.naturalLanguage || filter.industry || 'Global Targeted Outbound',
-      industry: filter.industry,
-      targetRegion: (filter.country === 'Nigeria' ? 'AFRICA' : filter.country === 'United States' ? 'NORTH_AMERICA' : filter.country === 'United Kingdom' ? 'UK_AND_EUROPE' : 'GLOBAL') as any,
-      targetCategory: filter.targetCategory || 'BUSINESS_B2B',
-      domainProvider: filter.domainProvider || 'ALL_DOMAINS',
-      schoolOrUniversity: filter.schoolOrUniversity,
-      department: filter.department,
-      courseOrDegree: filter.courseOrDegree,
-      cryptoNiche: filter.cryptoNiche,
-      brandNiche: filter.brandNiche,
-      keywords: filter.keywords || filter.naturalLanguage,
-      leadVolume: 25,
-    });
-    matched = scout.leads;
-  }
-
-  return matched;
+  return scout.leads;
 }
 
 // Global Hubs & Country Matrix for Worldwide Scouting
@@ -613,25 +546,73 @@ export const FIRST_NAMES = [
   'Alex', 'Sarah', 'Michael', 'David', 'Elena', 'Babatunde', 'Chidinma', 'Amina', 'Kwame', 'Marcus',
   'Liam', 'Chloe', 'Daniel', 'Fatima', 'Tariq', 'Jessica', 'Sophie', 'Lucas', 'Carlos', 'Wei',
   'Priya', 'Emeka', 'Zainab', 'Jordan', 'Nia', 'Mateo', 'Hannah', 'Kofi', 'Olumide', 'Aaliyah',
-  'Siddharth', 'Ngozi', 'Femi', 'Aisha', 'Gabriel', 'Chen', 'Dmitri', 'Yuki', 'Amara', 'Kehinde'
+  'Siddharth', 'Ngozi', 'Femi', 'Aisha', 'Gabriel', 'Chen', 'Dmitri', 'Yuki', 'Amara', 'Kehinde',
+  'Victoria', 'Julian', 'Claire', 'Farhan', 'Leila', 'Folake', 'Tunde', 'Beatrice', 'Soren', 'Ingrid',
+  'Kiran', 'Mei-Ling', 'Santiago', 'Camila', 'Adeola', 'Kelechi', 'Nathaniel', 'Grace', 'Benjamin', 'Rashid',
+  'Lina', 'Hassan', 'Zubair', 'Chioma', 'Tobias', 'Astrid', 'Dev', 'Ananya', 'Esteban', 'Valentina',
+  'Noah', 'Emma', 'Oliver', 'Ava', 'Elijah', 'Mia', 'William', 'Isabella', 'James', 'Sophia',
+  'Damilola', 'Yetunde', 'Ifeanyi', 'Nkem', 'Adisa', 'Kenji', 'Haruto', 'Mei', 'Jian', 'Xiuying',
+  'Arjun', 'Rohan', 'Kavita', 'Sunita', 'Javier', 'Mariana', 'Thiago', 'Larissa', 'Ozan', 'Defne'
 ];
 
 export const LAST_NAMES = [
   'Sterling', 'Chen', 'Vance', 'Okonkwo', 'Adeyemi', 'Mensah', 'Al-Mansoor', 'Kowalski', 'Dubois', 'Silva',
   'Patel', 'Fashola', 'Mwangi', 'Bakare', 'Hassan', 'Goldman', 'Reynolds', 'Osei', 'Schmidt', 'Tanaka',
   'Kim', 'Balogun', 'Santos', 'Okafor', 'Mueller', 'Taylor', 'Diallo', 'Vanderbilt', 'Nakamura', 'Adeleke',
-  'Sharma', 'Ogundipe', 'Ibrahim', 'Eze', 'Rodriguez', 'Larsson', 'Novak', 'Gupta', 'Nwosu', 'Bello'
+  'Sharma', 'Ogundipe', 'Ibrahim', 'Eze', 'Rodriguez', 'Larsson', 'Novak', 'Gupta', 'Nwosu', 'Bello',
+  'Adebayo', 'Onyekachi', 'Sowande', 'Kalu', 'Chambers', 'Lindqvist', 'Nielsen', 'Fontaine', 'Moreau', 'Costa',
+  'Fernandez', 'Almeida', 'Castillo', 'Yamamoto', 'Sato', 'Watanabe', 'Takahashi', 'Verma', 'Choudhury', 'Reddy',
+  'Mukherjee', 'Al-Husseini', 'Khoury', 'Farooq', 'Suleiman', 'Sommer', 'Weiss', 'Bauer', 'Hartmann', 'De Jong',
+  'Van Dijk', 'Bakker', 'Visser', 'Svensson', 'Nilsson', 'Eriksson', 'Holm', 'Dahl', 'Berg', 'Moriarty',
+  'Montgomery', 'Sinclair', 'Achebe', 'Soyinka', 'Danjuma', 'Garba', 'Bamidele', 'Sule', 'Ojo', 'Lawal'
+];
+
+export const BUSINESS_PAIN_POINTS = [
+  'Losing ~35% of outbound pipeline to manual SDR follow-up bottlenecks',
+  'High customer acquisition cost (CAC) & poor ad ROAS on cold traffic',
+  'Deliverability drops, spam flagging & domain reputation degradation',
+  'High mid-contract churn & delayed customer onboarding friction',
+  'Slow manual lead qualification & lack of verified C-suite contact data',
+  'Fragmented revenue stack causing data silos between CRM, billing & outbound',
+  'Inability to scale outbound pitch volume beyond 2,000 without email domain burn',
+  'Need automated inbound pipeline conversion for high-intent demo requests',
+  'Struggling to penetrate mid-market & enterprise procurement decision-makers',
+  'Compliance hurdles & GDPR/CAN-SPAM risk on manual outreach campaigns'
+];
+
+export const INDIVIDUAL_PAIN_POINTS = [
+  'Seeking predictable $5k-$15k/month client retainers without platform commission fees',
+  'High transaction gas fees & MEV slippage on crypto decentralized trading',
+  'Need academic research grant funding, lab computing resources & peer citations',
+  'Creator burnout, falling algorithmic reach & monetization struggles',
+  'Overwhelmed by solo business administration, bookkeeping & manual client pitch emails',
+  'Seeking high-paying remote developer contracts with international companies',
+  'Lacking an automated cold outreach engine to sign high-ticket consulting clients'
 ];
 
 export const B2B_SENIORITIES = [
-  { title: 'Chief Executive Officer & Founder', seniority: 'Executive', dept: 'Executive Management' },
-  { title: 'Managing Director & Partner', seniority: 'Executive', dept: 'Executive Management' },
-  { title: 'Vice President of Global Sales', seniority: 'VP', dept: 'Sales & Revenue' },
-  { title: 'Head of Growth & Acquisition', seniority: 'Director', dept: 'Revenue & Growth' },
-  { title: 'Chief Technology Officer (CTO)', seniority: 'Executive', dept: 'Engineering' },
-  { title: 'Director of Procurement & Vendor Relations', seniority: 'Director', dept: 'Operations' },
-  { title: 'Chief Marketing Officer (CMO)', seniority: 'Executive', dept: 'Marketing & Brand' },
+  { title: 'Chief Executive Officer & Founder', seniority: 'Executive', dept: 'Executive Management', focus: 'strategy' },
+  { title: 'Managing Director & Partner', seniority: 'Executive', dept: 'Executive Management', focus: 'strategy' },
+  { title: 'Vice President of Global Sales', seniority: 'VP', dept: 'Sales & Revenue', focus: 'sales' },
+  { title: 'Chief Revenue Officer (CRO)', seniority: 'Executive', dept: 'Revenue & Growth', focus: 'sales' },
+  { title: 'Head of Growth & Acquisition', seniority: 'Director', dept: 'Revenue & Growth', focus: 'growth' },
+  { title: 'Chief Technology Officer (CTO)', seniority: 'Executive', dept: 'Engineering', focus: 'tech' },
+  { title: 'VP of Engineering & Infrastructure', seniority: 'VP', dept: 'Engineering', focus: 'tech' },
+  { title: 'Director of Procurement & Vendor Relations', seniority: 'Director', dept: 'Operations', focus: 'procurement' },
+  { title: 'Chief Marketing Officer (CMO)', seniority: 'Executive', dept: 'Marketing & Brand', focus: 'marketing' },
+  { title: 'Head of Demand Generation', seniority: 'Director', dept: 'Marketing & Growth', focus: 'sales' },
+  { title: 'Chief Operating Officer (COO)', seniority: 'Executive', dept: 'Operations', focus: 'operations' },
 ];
+
+function hashString(str: string): number {
+  let hash = 0;
+  for (let i = 0; i < str.length; i++) {
+    const char = str.charCodeAt(i);
+    hash = (hash << 5) - hash + char;
+    hash |= 0;
+  }
+  return Math.abs(hash);
+}
 
 // Helper to formulate email addresses based on domain provider filter
 function generateDomainAndEmail(
@@ -719,11 +700,18 @@ export async function scoutGlobalHighVolumeLeads(filter: GlobalScoutFilter): Pro
 
   const generatedLeads: DiscoveredLead[] = [];
 
+  // Salt seed to guarantee unique, distinct contacts when switching categories, pain points, or queries
+  const seed = hashString(
+    `${targetCategory}_${filter.painPoint || ''}_${filter.targetAudience || ''}_${filter.whatTheySell || ''}_${filter.keywords || ''}_${filter.industry || ''}`
+  );
+
   for (let i = 0; i < targetCount; i++) {
     const loc = locations[i % locations.length];
     const city = loc.cities[i % loc.cities.length];
-    const firstName = FIRST_NAMES[(i * 3 + 7) % FIRST_NAMES.length];
-    const lastName = LAST_NAMES[(i * 5 + 13) % LAST_NAMES.length];
+
+    const saltedIndex = i + seed;
+    const firstName = FIRST_NAMES[(saltedIndex * 7 + 11) % FIRST_NAMES.length];
+    const lastName = LAST_NAMES[(saltedIndex * 13 + 17) % LAST_NAMES.length];
     const fullName = `${firstName} ${lastName}`;
 
     let jobTitle = 'Executive';
@@ -738,66 +726,79 @@ export async function scoutGlobalHighVolumeLeads(filter: GlobalScoutFilter): Pro
     let blockchainEcosystem: string | undefined = undefined;
     let brandNiche: string | undefined = undefined;
     let techStack: string[] = ['Cloudflare', 'PostgreSQL', 'Stripe', 'Google Analytics 4', 'AWS'];
-    let phone = `${loc.phonePrefix} ${Math.floor(800000000 + (i * 123456) % 199999999)}`;
+    let phone = `${loc.phonePrefix} ${Math.floor(800000000 + (saltedIndex * 123456) % 199999999)}`;
     let employeeCount = i % 4 === 0 ? '50-100' : i % 3 === 0 ? '25-50' : '100-250';
     let revenueRange = i % 3 === 0 ? '$5M - $20M' : '$1M - $5M';
     let twitterUrl: string | undefined;
     let telegramHandle: string | undefined;
 
+    const rawWhatTheySell = filter.whatTheySell || 'B2B Enterprise Software & Pipeline Systems';
+    const rawTargetAudience = filter.targetAudience || (
+      targetCategory === 'INDIVIDUALS' || targetCategory === 'INDIVIDUALS_B2C'
+        ? 'Direct Consumers & Independent Clients'
+        : 'Mid-Market & Enterprise Companies'
+    );
+    const rawPainPoint = filter.painPoint || (
+      targetCategory === 'INDIVIDUALS' || targetCategory === 'INDIVIDUALS_B2C'
+        ? INDIVIDUAL_PAIN_POINTS[saltedIndex % INDIVIDUAL_PAIN_POINTS.length]
+        : BUSINESS_PAIN_POINTS[saltedIndex % BUSINESS_PAIN_POINTS.length]
+    );
+
+    const painLower = rawPainPoint.toLowerCase();
+
     const companySlug = (filter.keywords || filter.whatTheySell || 'apex')
       .toLowerCase()
       .replace(/[^a-z0-9]/g, '')
       .slice(0, 10) || 'globalflow';
-    const companyRoot = `${companySlug}${['prime', 'vertex', 'pulse', 'solutions', 'labs', 'flow', 'cloud', 'global', 'hub', 'vanguard', 'matrix', 'growth'][i % 12]}`;
+    const companyRoot = `${companySlug}${['prime', 'vertex', 'pulse', 'solutions', 'labs', 'flow', 'cloud', 'global', 'hub', 'vanguard', 'matrix', 'growth'][(saltedIndex) % 12]}`;
 
     // Category Specific Customizations
-    if (targetCategory === 'INDIVIDUALS' || targetCategory === 'STUDENTS_ACADEMIC' || targetCategory === 'INDIVIDUALS_B2C') {
+    if (targetCategory === 'STUDENTS_ACADEMIC') {
       if (filter.schoolOrUniversity && filter.schoolOrUniversity !== 'All') {
-        // Academic scholar / student individual
-        let schoolObj = GLOBAL_UNIVERSITIES.find(u => u.name.toLowerCase().includes(filter.schoolOrUniversity!.toLowerCase())) || GLOBAL_UNIVERSITIES[i % GLOBAL_UNIVERSITIES.length];
+        let schoolObj = GLOBAL_UNIVERSITIES.find(u => u.name.toLowerCase().includes(filter.schoolOrUniversity!.toLowerCase())) || GLOBAL_UNIVERSITIES[saltedIndex % GLOBAL_UNIVERSITIES.length];
         schoolOrUniversity = filter.schoolOrUniversity !== 'All' ? filter.schoolOrUniversity : schoolObj.name;
         
-        const deptObj = ACADEMIC_DEPARTMENTS[i % ACADEMIC_DEPARTMENTS.length];
+        const deptObj = ACADEMIC_DEPARTMENTS[saltedIndex % ACADEMIC_DEPARTMENTS.length];
         department = filter.department && filter.department !== 'All' ? filter.department : deptObj.dept;
         courseOrDegree = filter.courseOrDegree && filter.courseOrDegree !== 'All' 
           ? filter.courseOrDegree 
-          : deptObj.courses[i % deptObj.courses.length];
+          : deptObj.courses[saltedIndex % deptObj.courses.length];
 
         seniority = 'Student / Academic Fellow';
-        jobTitle = `${i % 2 === 0 ? 'Senior Undergraduate Scholar' : 'Postgraduate Researcher'} (${courseOrDegree})`;
+        jobTitle = `${saltedIndex % 2 === 0 ? 'Senior Undergraduate Scholar' : 'Postgraduate Researcher'} (${courseOrDegree})`;
         entityName = schoolOrUniversity;
         industry = 'Higher Education & Academic Research';
         employeeCount = 'Individual';
         revenueRange = 'N/A';
         techStack = ['Python', 'RStudio', 'LaTeX', 'Git', 'Google Scholar', 'Notion'];
-      } else {
-        // Individual specialist, creator, freelancer, or consumer
-        const individualRoles = [
-          'Independent Software Engineer & Builder',
-          'Digital Creator & Content Strategist',
-          'Freelance Product Designer (UI/UX)',
-          'Independent Management Consultant',
-          'Private Wealth & Angel Investor',
-          'Remote AI & Data Specialist',
-          'Independent Real Estate Specialist',
-          'Certified Financial Analyst & Planner'
-        ];
-        jobTitle = filter.keywords ? `${filter.keywords.split(',')[0].trim()} Specialist` : individualRoles[i % individualRoles.length];
-        seniority = 'Individual';
-        department = 'Independent Specialist';
-        entityName = `${fullName} (Personal Practice)`;
-        industry = filter.industry && filter.industry !== 'All' ? filter.industry : 'Independent Services & Consulting';
-        employeeCount = '1';
-        revenueRange = '$80K - $350K';
-        techStack = ['Notion', 'Figma', 'Stripe', 'Google Workspace', 'Zoom'];
       }
+    } else if (targetCategory === 'INDIVIDUALS' || targetCategory === 'INDIVIDUALS_B2C') {
+      // Individual specialist, creator, freelancer, or consumer with distinct personal practice
+      const individualRoles = [
+        'Independent Management Consultant',
+        'Freelance Full-Stack Engineer & Builder',
+        'Digital Creator & Content Strategist',
+        'Freelance Product Designer (UI/UX)',
+        'Private Wealth & Angel Investor',
+        'Remote AI & Data Specialist',
+        'Independent Real Estate Specialist',
+        'Certified Financial Analyst & Planner'
+      ];
+      jobTitle = filter.keywords ? `${filter.keywords.split(',')[0].trim()} Specialist` : individualRoles[saltedIndex % individualRoles.length];
+      seniority = 'Independent Professional';
+      department = 'Independent Practice';
+      entityName = `${fullName} Studio & Consulting`;
+      industry = filter.industry && filter.industry !== 'All' ? filter.industry : 'Independent Services & Consulting';
+      employeeCount = '1';
+      revenueRange = '$80K - $350K';
+      techStack = ['Notion', 'Figma', 'Stripe', 'Google Workspace', 'Zoom'];
     } 
     else if (targetCategory === 'CRYPTO_WEB3') {
-      const cryptoItem = CRYPTO_WEB3_NICHES[i % CRYPTO_WEB3_NICHES.length];
+      const cryptoItem = CRYPTO_WEB3_NICHES[saltedIndex % CRYPTO_WEB3_NICHES.length];
       cryptoNiche = filter.cryptoNiche || cryptoItem.niche;
-      blockchainEcosystem = cryptoItem.protocols[i % cryptoItem.protocols.length];
+      blockchainEcosystem = cryptoItem.protocols[saltedIndex % cryptoItem.protocols.length];
       
-      jobTitle = `${cryptoItem.protocols[i % cryptoItem.protocols.length]} Core Contributor & ${cryptoNiche.split(' ')[0]}`;
+      jobTitle = `${cryptoItem.protocols[saltedIndex % cryptoItem.protocols.length]} Core Contributor & ${cryptoNiche.split(' ')[0]}`;
       seniority = 'Lead Specialist / Founder';
       department = 'Web3 Protocols & Smart Contracts';
       entityName = `${blockchainEcosystem} Labs & DAO`;
@@ -806,10 +807,10 @@ export async function scoutGlobalHighVolumeLeads(filter: GlobalScoutFilter): Pro
       revenueRange = '$5M - $50M TVL';
       techStack = cryptoItem.tech;
       telegramHandle = `@${firstName.toLowerCase()}_${blockchainEcosystem.toLowerCase()}`;
-      twitterUrl = `https://x.com/${firstName.toLowerCase()}_crypto_${i % 99}`;
+      twitterUrl = `https://x.com/${firstName.toLowerCase()}_crypto_${saltedIndex % 99}`;
     }
     else if (targetCategory === 'HOT_NICHES_BRANDS') {
-      const brandItem = HOT_NICHES_BRANDS[i % HOT_NICHES_BRANDS.length];
+      const brandItem = HOT_NICHES_BRANDS[saltedIndex % HOT_NICHES_BRANDS.length];
       brandNiche = filter.brandNiche || brandItem.niche;
       entityName = `${companyRoot.charAt(0).toUpperCase() + companyRoot.slice(1)} (${brandNiche.split(' ')[0]})`;
       jobTitle = 'Founder & Head of Direct Sales';
@@ -821,13 +822,25 @@ export async function scoutGlobalHighVolumeLeads(filter: GlobalScoutFilter): Pro
       techStack = brandItem.tech;
     }
     else {
-      // BUSINESS & B2B Decision Makers interested in the user's business
-      const role = B2B_SENIORITIES[i % B2B_SENIORITIES.length];
+      // BUSINESS & B2B Decision Makers selected directly by the pain point
+      let matchedRoles = B2B_SENIORITIES;
+      if (painLower.includes('sales') || painLower.includes('pipeline') || painLower.includes('outbound') || painLower.includes('sdr') || painLower.includes('lead') || painLower.includes('pitch')) {
+        matchedRoles = B2B_SENIORITIES.filter(r => r.focus === 'sales' || r.focus === 'growth');
+      } else if (painLower.includes('deliverability') || painLower.includes('spam') || painLower.includes('domain') || painLower.includes('tech') || painLower.includes('api') || painLower.includes('security')) {
+        matchedRoles = B2B_SENIORITIES.filter(r => r.focus === 'tech');
+      } else if (painLower.includes('cac') || painLower.includes('ad') || painLower.includes('marketing') || painLower.includes('traffic') || painLower.includes('brand')) {
+        matchedRoles = B2B_SENIORITIES.filter(r => r.focus === 'marketing' || r.focus === 'growth');
+      } else if (painLower.includes('churn') || painLower.includes('onboarding') || painLower.includes('operation') || painLower.includes('procurement')) {
+        matchedRoles = B2B_SENIORITIES.filter(r => r.focus === 'operations' || r.focus === 'procurement');
+      }
+      if (matchedRoles.length === 0) matchedRoles = B2B_SENIORITIES;
+
+      const role = matchedRoles[saltedIndex % matchedRoles.length];
       jobTitle = role.title;
       seniority = role.seniority;
       department = role.dept;
-      const bizSuffix = (filter.whatTheySell || 'Solutions').split(' ')[0];
-      entityName = `${companyRoot.charAt(0).toUpperCase() + companyRoot.slice(1)} ${bizSuffix} Corp`;
+      const bizSuffix = (rawWhatTheySell || 'Solutions').split(' ')[0].replace(/[^a-zA-Z]/g, '') || 'Enterprise';
+      entityName = `${companyRoot.charAt(0).toUpperCase() + companyRoot.slice(1)} ${bizSuffix} Inc`;
       industry = filter.industry && filter.industry !== 'All' ? filter.industry : 'B2B Software & Commercial Enterprise';
     }
 
@@ -838,13 +851,13 @@ export async function scoutGlobalHighVolumeLeads(filter: GlobalScoutFilter): Pro
       domainProvider,
       targetCategory === 'STUDENTS_ACADEMIC' ? (GLOBAL_UNIVERSITIES.find(u => u.name === schoolOrUniversity) || GLOBAL_UNIVERSITIES[0]) : undefined,
       companyRoot,
-      i
+      saltedIndex
     );
 
     entityDomain = domain;
 
-    const intentScore = Math.min(99, Math.max(78, 85 + ((i * 7) % 15)));
-    const fitScore = Math.min(99, Math.max(80, 88 + ((i * 11) % 12)));
+    const intentScore = Math.min(99, Math.max(78, 85 + ((saltedIndex * 7) % 15)));
+    const fitScore = Math.min(99, Math.max(80, 88 + ((saltedIndex * 11) % 12)));
 
     generatedLeads.push({
       id: `scout-${targetCategory.toLowerCase()}-${filter.targetRegion.toLowerCase()}-${i + 1}`,
@@ -860,6 +873,10 @@ export async function scoutGlobalHighVolumeLeads(filter: GlobalScoutFilter): Pro
       companyDomain: entityDomain,
       domainProviderType: providerType,
       targetCategory,
+      painPoint: rawPainPoint,
+      targetAudience: rawTargetAudience,
+      whatTheySell: rawWhatTheySell,
+      solutionFitReason: `Identified active pain signal: "${rawPainPoint}" within target audience "${rawTargetAudience}"`,
       schoolOrUniversity,
       courseOrDegree,
       cryptoNiche,

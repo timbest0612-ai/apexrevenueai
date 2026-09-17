@@ -40,6 +40,9 @@ export const MassPitchDispatcher: React.FC<MassPitchDispatcherProps> = ({
   initialLeads = []
 }) => {
   // Step 1: Scouting Filter State
+  const [targetCategory, setTargetCategory] = useState<'BUSINESS' | 'INDIVIDUALS'>('BUSINESS');
+  const [painPoint, setPainPoint] = useState('Losing ~35% of outbound pipeline to manual SDR follow-up bottlenecks');
+  const [targetAudience, setTargetAudience] = useState('B2B SaaS Founders & Revenue Leaders');
   const [whatTheySell, setWhatTheySell] = useState('B2B SaaS CRM & Automation Tools');
   const [targetRegion, setTargetRegion] = useState<GlobalRegion>('GLOBAL');
   const [leadVolume, setLeadVolume] = useState<number>(2000);
@@ -54,9 +57,9 @@ export const MassPitchDispatcher: React.FC<MassPitchDispatcherProps> = ({
   const [myOffer, setMyOffer] = useState('AI Automated Customer Acquisition & Revenue Pipeline Engine');
   const [channel, setChannel] = useState<'email' | 'whatsapp' | 'omnichannel'>('email');
   const [dispatchSpeed, setDispatchSpeed] = useState<'INSTANT_TURBO' | 'SMART_RAMPED'>('INSTANT_TURBO');
-  const [subject, setSubject] = useState('Quick idea for scaling customer acquisition at {{company}}');
+  const [subject, setSubject] = useState('Quick idea for solving {{pain_point}} at {{company}}');
   const [bodyMessage, setBodyMessage] = useState(
-    `Hi {{first_name}},\n\nI noticed {{company}} is rapidly scaling your presence in {{what_they_sell}} across {{city}}.\n\nWe built ApexRevenue AI to help founders like you acquire 2,000+ ready-to-buy clients at once with zero-bounce verified delivery and multi-channel automation.\n\nWould you be open to a 5-minute teardown on how we generated 3.8x ROI for similar companies?\n\nBest regards,\nTim Best\nApexRevenue AI`
+    `Hi {{first_name}},\n\nI noticed {{company}} is serving {{target_audience}} in {{what_they_sell}} across {{city}}.\n\nMost leaders we speak with struggle with {{pain_point}}. We built ApexRevenue AI to solve exactly that, helping teams acquire qualified clients at scale with zero-bounce verified delivery.\n\nWould you be open to a 5-minute chat on how we eliminated this bottleneck for similar companies?\n\nBest regards,\nTim Best\nApexRevenue AI`
   );
   const [previewLeadIndex, setPreviewLeadIndex] = useState(0);
 
@@ -69,14 +72,17 @@ export const MassPitchDispatcher: React.FC<MassPitchDispatcherProps> = ({
   // Pre-scout initial batch if none provided
   useEffect(() => {
     if (scoutedLeads.length === 0) {
-      handleScoutLeads(2000, whatTheySell, targetRegion);
+      handleScoutLeads(2000, whatTheySell, targetRegion, painPoint, targetAudience, targetCategory);
     }
   }, []);
 
   const handleScoutLeads = async (
     volume: number = leadVolume,
     selling: string = whatTheySell,
-    region: GlobalRegion = targetRegion
+    region: GlobalRegion = targetRegion,
+    currentPain: string = painPoint,
+    currentAudience: string = targetAudience,
+    currentCat: 'BUSINESS' | 'INDIVIDUALS' = targetCategory
   ) => {
     setIsScouting(true);
     try {
@@ -84,10 +90,13 @@ export const MassPitchDispatcher: React.FC<MassPitchDispatcherProps> = ({
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
+          targetCategory: currentCat === 'BUSINESS' ? 'BUSINESS_B2B' : 'INDIVIDUALS',
           whatTheySell: selling,
           targetRegion: region,
           leadVolume: volume,
-          minIntentScore
+          minIntentScore,
+          painPoint: currentPain,
+          targetAudience: currentAudience
         })
       });
       const data = await res.json();
@@ -204,14 +213,43 @@ export const MassPitchDispatcher: React.FC<MassPitchDispatcherProps> = ({
   };
 
   const getPersonalizedText = (template: string) => {
+    const pLead = currentPreviewLead;
     return template
-      .replace(/{{first_name}}/g, currentPreviewLead.firstName || 'there')
-      .replace(/{{company}}/g, currentPreviewLead.companyName || 'your company')
-      .replace(/{{what_they_sell}}/g, whatTheySell)
-      .replace(/{{city}}/g, currentPreviewLead.city || 'your region')
-      .replace(/{{country}}/g, currentPreviewLead.country || 'Global')
+      .replace(/{{first_name}}/g, pLead.firstName || 'there')
+      .replace(/{{last_name}}/g, pLead.lastName || '')
+      .replace(/{{company}}/g, pLead.companyName || 'your company')
+      .replace(/{{what_they_sell}}/g, pLead.whatTheySell || whatTheySell)
+      .replace(/{{pain_point}}/g, pLead.painPoint || painPoint)
+      .replace(/{{target_audience}}/g, pLead.targetAudience || targetAudience)
+      .replace(/{{title}}/g, pLead.jobTitle || 'Founder')
+      .replace(/{{solution_fit}}/g, pLead.solutionFitReason || `Tailored to resolve active bottlenecks`)
+      .replace(/{{city}}/g, pLead.city || 'your region')
+      .replace(/{{country}}/g, pLead.country || 'Global')
       .replace(/{{my_offer}}/g, myOffer);
   };
+
+  const PAIN_POINT_PRESETS = [
+    'Losing ~35% of outbound pipeline to manual SDR follow-up bottlenecks',
+    'High customer acquisition cost (CAC) & poor ad ROAS on cold traffic',
+    'Deliverability drops, spam flagging & domain reputation degradation',
+    'High mid-contract churn & delayed customer onboarding friction',
+    'Slow manual lead qualification & lack of verified C-suite contact data'
+  ];
+
+  const INDIVIDUAL_PAIN_PRESETS = [
+    'Seeking predictable $5k-$15k/month client retainers without platform commission fees',
+    'Need academic research grant funding, lab computing resources & peer citations',
+    'Creator burnout, falling algorithmic reach & monetization struggles',
+    'Lacking an automated cold outreach engine to sign high-ticket consulting clients'
+  ];
+
+  const AUDIENCE_PRESETS = [
+    'B2B SaaS Founders & Revenue Leaders',
+    'E-Commerce & DTC Direct Brand Owners',
+    'Digital Agency Owners & Consultants',
+    'Enterprise Procurement & IT Executives',
+    'Independent Creators & Solo Consultants'
+  ];
 
   const NICHE_SUGGESTIONS = [
     'Selling B2B SaaS CRM & AI',
@@ -270,13 +308,118 @@ export const MassPitchDispatcher: React.FC<MassPitchDispatcherProps> = ({
                     1. Scout Worldwide Ready & Verified Leads
                   </h2>
                   <p className="text-xs text-slate-500">
-                    Filter by what they sell, region, and target lead volume (up to 5,000)
+                    Filter by pain point, target audience, what they sell, and volume (up to 100,000)
                   </p>
                 </div>
               </div>
               <span className="px-2.5 py-1 rounded-full bg-emerald-500/10 border border-emerald-500/20 text-emerald-600 dark:text-emerald-400 text-[10px] font-bold">
                 Auto-Verified MX
               </span>
+            </div>
+
+            {/* Target Category Selector */}
+            <div className="space-y-1.5">
+              <label className="block text-xs font-semibold text-slate-700 dark:text-slate-300">
+                Contact Target Type
+              </label>
+              <div className="grid grid-cols-2 gap-2">
+                <button
+                  type="button"
+                  onClick={() => {
+                    setTargetCategory('BUSINESS');
+                    handleScoutLeads(leadVolume, whatTheySell, targetRegion, painPoint, targetAudience, 'BUSINESS');
+                  }}
+                  className={`py-2 px-3 rounded-xl text-xs font-bold transition-all border flex items-center justify-center gap-2 cursor-pointer ${
+                    targetCategory === 'BUSINESS'
+                      ? 'bg-indigo-600 text-white border-indigo-600 shadow-xs'
+                      : 'bg-slate-100 dark:bg-slate-800 text-slate-700 dark:text-slate-300 border-slate-200 dark:border-slate-700 hover:bg-slate-200'
+                  }`}
+                >
+                  <Building className="w-3.5 h-3.5" />
+                  <span>Business / B2B Companies</span>
+                </button>
+                <button
+                  type="button"
+                  onClick={() => {
+                    setTargetCategory('INDIVIDUALS');
+                    handleScoutLeads(leadVolume, whatTheySell, targetRegion, painPoint, targetAudience, 'INDIVIDUALS');
+                  }}
+                  className={`py-2 px-3 rounded-xl text-xs font-bold transition-all border flex items-center justify-center gap-2 cursor-pointer ${
+                    targetCategory === 'INDIVIDUALS'
+                      ? 'bg-indigo-600 text-white border-indigo-600 shadow-xs'
+                      : 'bg-slate-100 dark:bg-slate-800 text-slate-700 dark:text-slate-300 border-slate-200 dark:border-slate-700 hover:bg-slate-200'
+                  }`}
+                >
+                  <Users className="w-3.5 h-3.5" />
+                  <span>Individuals & Scholars</span>
+                </button>
+              </div>
+            </div>
+
+            {/* Pain Point Selector */}
+            <div className="space-y-1.5">
+              <label className="block text-xs font-semibold text-slate-700 dark:text-slate-300">
+                Pain Point They Need Solved
+              </label>
+              <input
+                type="text"
+                value={painPoint}
+                onChange={(e) => setPainPoint(e.target.value)}
+                placeholder="e.g. Losing 35% pipeline to manual follow-ups, high customer acquisition cost..."
+                className="w-full px-3.5 py-2 text-xs rounded-xl border border-slate-300 dark:border-slate-700 bg-white dark:bg-slate-800 text-slate-900 dark:text-slate-100 focus:outline-none focus:ring-2 focus:ring-indigo-500 font-medium"
+              />
+              <div className="flex flex-wrap gap-1.5 pt-1">
+                {(targetCategory === 'BUSINESS' ? PAIN_POINT_PRESETS : INDIVIDUAL_PAIN_PRESETS).map((p) => (
+                  <button
+                    key={p}
+                    type="button"
+                    onClick={() => {
+                      setPainPoint(p);
+                      handleScoutLeads(leadVolume, whatTheySell, targetRegion, p, targetAudience, targetCategory);
+                    }}
+                    className={`px-2.5 py-1 rounded-lg text-[10px] font-medium transition-colors ${
+                      painPoint === p
+                        ? 'bg-amber-500 text-white'
+                        : 'bg-slate-100 dark:bg-slate-800 text-slate-600 dark:text-slate-300 hover:bg-slate-200'
+                    }`}
+                  >
+                    {p.length > 50 ? `${p.slice(0, 50)}...` : p}
+                  </button>
+                ))}
+              </div>
+            </div>
+
+            {/* Target Audience */}
+            <div className="space-y-1.5">
+              <label className="block text-xs font-semibold text-slate-700 dark:text-slate-300">
+                Target Audience / Buyer Persona
+              </label>
+              <input
+                type="text"
+                value={targetAudience}
+                onChange={(e) => setTargetAudience(e.target.value)}
+                placeholder="e.g. B2B SaaS Founders, E-Commerce Brand Owners, Agency Directors..."
+                className="w-full px-3.5 py-2 text-xs rounded-xl border border-slate-300 dark:border-slate-700 bg-white dark:bg-slate-800 text-slate-900 dark:text-slate-100 focus:outline-none focus:ring-2 focus:ring-indigo-500 font-medium"
+              />
+              <div className="flex flex-wrap gap-1.5 pt-1">
+                {AUDIENCE_PRESETS.map((aud) => (
+                  <button
+                    key={aud}
+                    type="button"
+                    onClick={() => {
+                      setTargetAudience(aud);
+                      handleScoutLeads(leadVolume, whatTheySell, targetRegion, painPoint, aud, targetCategory);
+                    }}
+                    className={`px-2 py-0.5 rounded-lg text-[10px] font-medium transition-colors ${
+                      targetAudience === aud
+                        ? 'bg-blue-600 text-white'
+                        : 'bg-slate-100 dark:bg-slate-800 text-slate-600 dark:text-slate-300 hover:bg-slate-200'
+                    }`}
+                  >
+                    {aud}
+                  </button>
+                ))}
+              </div>
             </div>
 
             {/* What they sell search field */}
@@ -302,7 +445,7 @@ export const MassPitchDispatcher: React.FC<MassPitchDispatcherProps> = ({
                     type="button"
                     onClick={() => {
                       setWhatTheySell(niche);
-                      handleScoutLeads(leadVolume, niche, targetRegion);
+                      handleScoutLeads(leadVolume, niche, targetRegion, painPoint, targetAudience, targetCategory);
                     }}
                     className={`px-2.5 py-1 rounded-lg text-[11px] font-medium transition-colors ${
                       whatTheySell === niche
@@ -327,7 +470,7 @@ export const MassPitchDispatcher: React.FC<MassPitchDispatcherProps> = ({
                   onChange={(e) => {
                     const reg = e.target.value as GlobalRegion;
                     setTargetRegion(reg);
-                    handleScoutLeads(leadVolume, whatTheySell, reg);
+                    handleScoutLeads(leadVolume, whatTheySell, reg, painPoint, targetAudience, targetCategory);
                   }}
                   className="w-full px-3 py-2 text-xs rounded-xl border border-slate-300 dark:border-slate-700 bg-white dark:bg-slate-800 text-slate-900 dark:text-slate-100 font-medium focus:ring-2 focus:ring-indigo-500"
                 >
@@ -352,7 +495,7 @@ export const MassPitchDispatcher: React.FC<MassPitchDispatcherProps> = ({
                       type="button"
                       onClick={() => {
                         setLeadVolume(vol);
-                        handleScoutLeads(vol, whatTheySell, targetRegion);
+                        handleScoutLeads(vol, whatTheySell, targetRegion, painPoint, targetAudience, targetCategory);
                       }}
                       className={`py-2 rounded-xl text-xs font-bold transition-all cursor-pointer ${
                         leadVolume === vol
@@ -371,7 +514,7 @@ export const MassPitchDispatcher: React.FC<MassPitchDispatcherProps> = ({
             <div className="pt-2 flex items-center justify-between gap-3">
               <button
                 type="button"
-                onClick={() => handleScoutLeads(leadVolume, whatTheySell, targetRegion)}
+                onClick={() => handleScoutLeads(leadVolume, whatTheySell, targetRegion, painPoint, targetAudience, targetCategory)}
                 disabled={isScouting}
                 className="w-full py-2.5 rounded-xl bg-indigo-600 hover:bg-indigo-700 text-white text-xs font-bold transition-colors flex items-center justify-center gap-2 shadow-sm disabled:opacity-50"
               >
@@ -553,10 +696,12 @@ export const MassPitchDispatcher: React.FC<MassPitchDispatcherProps> = ({
                 <label className="block text-xs font-semibold text-slate-700 dark:text-slate-300">
                   Pitch Message Template
                 </label>
-                <div className="flex items-center gap-1 text-[11px] text-slate-400">
+                <div className="flex flex-wrap items-center gap-1 text-[11px] text-slate-400">
                   <span>Available tags:</span>
                   <code className="text-indigo-600 dark:text-indigo-400">{`{{first_name}}`}</code>,{' '}
                   <code className="text-indigo-600 dark:text-indigo-400">{`{{company}}`}</code>,{' '}
+                  <code className="text-indigo-600 dark:text-indigo-400">{`{{pain_point}}`}</code>,{' '}
+                  <code className="text-indigo-600 dark:text-indigo-400">{`{{target_audience}}`}</code>,{' '}
                   <code className="text-indigo-600 dark:text-indigo-400">{`{{what_they_sell}}`}</code>,{' '}
                   <code className="text-indigo-600 dark:text-indigo-400">{`{{city}}`}</code>
                 </div>
@@ -636,13 +781,27 @@ export const MassPitchDispatcher: React.FC<MassPitchDispatcherProps> = ({
             {/* Recipient Details Card */}
             <div className="p-3.5 rounded-xl bg-slate-50 dark:bg-slate-800/80 border border-slate-200 dark:border-slate-700/80 space-y-2">
               <div className="flex items-center justify-between">
-                <span className="text-xs font-bold text-slate-900 dark:text-slate-100">
-                  {currentPreviewLead.fullName}
-                </span>
+                <div>
+                  <span className="text-xs font-bold text-slate-900 dark:text-slate-100">
+                    {currentPreviewLead.fullName}
+                  </span>
+                  {currentPreviewLead.jobTitle && (
+                    <span className="ml-2 text-[10px] text-slate-500 font-medium">
+                      ({currentPreviewLead.jobTitle})
+                    </span>
+                  )}
+                </div>
                 <span className="px-2 py-0.5 rounded-full bg-emerald-500/10 text-emerald-600 dark:text-emerald-400 text-[10px] font-bold">
                   Intent: {currentPreviewLead.buyingIntentScore || 92}/100
                 </span>
               </div>
+
+              {(currentPreviewLead.painPoint || painPoint) && (
+                <div className="text-[10px] bg-amber-50 dark:bg-amber-950/40 border border-amber-200 dark:border-amber-800/60 text-amber-800 dark:text-amber-300 px-2 py-1 rounded-lg">
+                  <span className="font-bold">Targeted Pain:</span> {currentPreviewLead.painPoint || painPoint}
+                </div>
+              )}
+
               <div className="text-[11px] text-slate-500 flex flex-wrap items-center gap-x-3 gap-y-1">
                 <span className="flex items-center gap-1">
                   <Building className="h-3 w-3 text-slate-400" />
