@@ -22,7 +22,8 @@ import {
   ChevronRight,
   BarChart3,
   Layers,
-  AlertCircle
+  AlertCircle,
+  Inbox
 } from 'lucide-react';
 import { DiscoveredLead, GlobalRegion, MassDispatchJob, CurrencyCode } from '../types.js';
 import { formatCurrency, formatNumber } from '../utils/formatters.js';
@@ -45,6 +46,7 @@ export const MassPitchDispatcher: React.FC<MassPitchDispatcherProps> = ({
   const [minIntentScore, setMinIntentScore] = useState<number>(80);
   const [isScouting, setIsScouting] = useState(false);
   const [scoutedLeads, setScoutedLeads] = useState<DiscoveredLead[]>(initialLeads);
+  const [totalScoutedCount, setTotalScoutedCount] = useState<number>(initialLeads.length || 2000);
   const [marketSummary, setMarketSummary] = useState('');
 
   // Step 2: Mass Pitch Composition State
@@ -91,6 +93,7 @@ export const MassPitchDispatcher: React.FC<MassPitchDispatcherProps> = ({
       const data = await res.json();
       if (data.success) {
         setScoutedLeads(data.leads || []);
+        setTotalScoutedCount(data.totalScouted || volume);
         setMarketSummary(data.marketSummary || '');
       }
     } catch (err) {
@@ -163,7 +166,7 @@ export const MassPitchDispatcher: React.FC<MassPitchDispatcherProps> = ({
           campaignName,
           targetOffer: myOffer,
           whatTheySell,
-          totalRecipients: scoutedLeads.length || leadVolume,
+          totalRecipients: activeJob ? activeJob.totalRecipients : totalScoutedCount || leadVolume,
           channel,
           dispatchSpeed,
           subject,
@@ -243,7 +246,7 @@ export const MassPitchDispatcher: React.FC<MassPitchDispatcherProps> = ({
             <div className="p-4 rounded-xl bg-white/10 backdrop-blur-md border border-white/15 text-center">
               <span className="text-[11px] uppercase tracking-wider text-slate-300 font-semibold block">Currently Ready Leads</span>
               <span className="text-2xl font-black text-emerald-400">
-                {formatNumber(scoutedLeads.length || leadVolume)}
+                {formatNumber(totalScoutedCount || leadVolume)}
               </span>
               <span className="text-[10px] text-slate-300 block mt-0.5">100% Zero-Bounce Verified</span>
             </div>
@@ -342,8 +345,8 @@ export const MassPitchDispatcher: React.FC<MassPitchDispatcherProps> = ({
                 <label className="block text-xs font-semibold text-slate-700 dark:text-slate-300">
                   Batch Lead Volume
                 </label>
-                <div className="grid grid-cols-4 gap-1.5">
-                  {[500, 1000, 2000, 5000].map((vol) => (
+                <div className="grid grid-cols-3 sm:grid-cols-6 gap-1.5">
+                  {[1000, 5000, 10000, 25000, 50000, 100000].map((vol) => (
                     <button
                       key={vol}
                       type="button"
@@ -351,13 +354,13 @@ export const MassPitchDispatcher: React.FC<MassPitchDispatcherProps> = ({
                         setLeadVolume(vol);
                         handleScoutLeads(vol, whatTheySell, targetRegion);
                       }}
-                      className={`py-2 rounded-xl text-xs font-bold transition-all ${
+                      className={`py-2 rounded-xl text-xs font-bold transition-all cursor-pointer ${
                         leadVolume === vol
                           ? 'bg-indigo-600 text-white shadow-xs'
                           : 'bg-slate-100 dark:bg-slate-800 text-slate-700 dark:text-slate-300 hover:bg-slate-200'
                       }`}
                     >
-                      {vol.toLocaleString()}
+                      {vol >= 1000 ? `${vol / 1000}k` : vol}
                     </button>
                   ))}
                 </div>
@@ -706,7 +709,7 @@ export const MassPitchDispatcher: React.FC<MassPitchDispatcherProps> = ({
               <div className="p-3 rounded-xl bg-slate-50 dark:bg-slate-800/60 border border-slate-100 dark:border-slate-800">
                 <span className="text-[10px] text-slate-500 font-semibold block">Total Recipients</span>
                 <span className="text-lg font-bold text-slate-900 dark:text-slate-100">
-                  {formatNumber(activeJob ? activeJob.totalRecipients : scoutedLeads.length || leadVolume)}
+                  {formatNumber(activeJob ? activeJob.totalRecipients : totalScoutedCount || leadVolume)}
                 </span>
               </div>
 
@@ -720,14 +723,14 @@ export const MassPitchDispatcher: React.FC<MassPitchDispatcherProps> = ({
               <div className="p-3 rounded-xl bg-blue-500/10 border border-blue-500/20">
                 <span className="text-[10px] text-blue-700 dark:text-blue-400 font-semibold block">Estimated Opens</span>
                 <span className="text-lg font-bold text-blue-600 dark:text-blue-400">
-                  {formatNumber(Math.round((activeJob ? activeJob.totalRecipients : scoutedLeads.length || leadVolume) * 0.612))} (61%)
+                  {formatNumber(Math.round((activeJob ? activeJob.totalRecipients : totalScoutedCount || leadVolume) * 0.612))} (61%)
                 </span>
               </div>
 
               <div className="p-3 rounded-xl bg-purple-500/10 border border-purple-500/20">
                 <span className="text-[10px] text-purple-700 dark:text-purple-400 font-semibold block">Pipeline Attributed</span>
                 <span className="text-lg font-bold text-purple-600 dark:text-purple-400">
-                  {formatCurrency((activeJob ? activeJob.totalRecipients : scoutedLeads.length || leadVolume) * 48.5, currency)}
+                  {formatCurrency((activeJob ? activeJob.totalRecipients : totalScoutedCount || leadVolume) * 48.5, currency)}
                 </span>
               </div>
             </div>
@@ -761,15 +764,33 @@ export const MassPitchDispatcher: React.FC<MassPitchDispatcherProps> = ({
             </div>
 
             {activeJob && (
-              <div className="pt-2 flex items-center gap-2">
+              <div className="pt-2 space-y-1.5">
                 <button
                   type="button"
-                  onClick={() => onNavigateTab('campaigns')}
-                  className="w-full py-2 rounded-xl bg-slate-100 dark:bg-slate-800 hover:bg-slate-200 text-xs font-semibold text-indigo-600 dark:text-indigo-400 flex items-center justify-center gap-1.5 transition-colors"
+                  onClick={() => onNavigateTab('inbox')}
+                  className="w-full py-2 px-3 rounded-xl bg-indigo-600 hover:bg-indigo-500 text-xs font-bold text-white flex items-center justify-center gap-1.5 transition-colors shadow-xs"
                 >
-                  <BarChart3 className="h-3.5 w-3.5" />
-                  <span>View in Campaign Analytics</span>
+                  <Inbox className="h-3.5 w-3.5" />
+                  <span>Monitor Live Replies in Smart Inbox</span>
                 </button>
+                <div className="grid grid-cols-2 gap-2">
+                  <button
+                    type="button"
+                    onClick={() => onNavigateTab('campaigns')}
+                    className="py-1.5 px-2 rounded-xl bg-slate-100 dark:bg-slate-800 hover:bg-slate-200 dark:hover:bg-slate-700 text-xs font-semibold text-slate-700 dark:text-slate-300 flex items-center justify-center gap-1 transition-colors"
+                  >
+                    <BarChart3 className="h-3 w-3 text-indigo-500" />
+                    <span>Sequences</span>
+                  </button>
+                  <button
+                    type="button"
+                    onClick={() => onNavigateTab('attribution')}
+                    className="py-1.5 px-2 rounded-xl bg-slate-100 dark:bg-slate-800 hover:bg-slate-200 dark:hover:bg-slate-700 text-xs font-semibold text-slate-700 dark:text-slate-300 flex items-center justify-center gap-1 transition-colors"
+                  >
+                    <TrendingUp className="h-3 w-3 text-emerald-500" />
+                    <span>ROI Attribution</span>
+                  </button>
+                </div>
               </div>
             )}
           </div>

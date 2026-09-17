@@ -107,7 +107,11 @@ export const CRMView: React.FC<CRMViewProps> = ({
       c.email.toLowerCase().includes(searchQuery.toLowerCase()) ||
       c.companyName.toLowerCase().includes(searchQuery.toLowerCase());
     
-    const matchesStatus = statusFilter === 'ALL' || c.status === statusFilter;
+    const matchesStatus = 
+      statusFilter === 'ALL' || 
+      (statusFilter === 'DISCOVERED' 
+        ? (c.tags?.includes('lead-discovery') || c.scores.intentSignals?.some(s => s.toLowerCase().includes('discovery')))
+        : c.status === statusFilter);
     const matchesCategory = categoryFilter === 'ALL' || c.scores.category === categoryFilter;
 
     return matchesSearch && matchesStatus && matchesCategory;
@@ -250,6 +254,7 @@ export const CRMView: React.FC<CRMViewProps> = ({
             className="px-2.5 py-1.5 rounded-lg border border-slate-200 dark:border-slate-700 bg-slate-50 dark:bg-slate-950 text-xs font-medium text-slate-700 dark:text-slate-300 focus:outline-none"
           >
             <option value="ALL">All Lifecycle Stages</option>
+            <option value="DISCOVERED">⭐ Imported from Lead Discovery</option>
             <option value="LEAD">Leads</option>
             <option value="MQL">MQLs</option>
             <option value="SQL">SQLs</option>
@@ -314,7 +319,7 @@ export const CRMView: React.FC<CRMViewProps> = ({
                 if (onVerifyContactsBulk) {
                   onVerifyContactsBulk(emails);
                 } else if (onNavigateTab) {
-                  onNavigateTab('email-verifier');
+                  onNavigateTab('verify');
                 }
               }}
               className="px-3 py-1.5 rounded-lg bg-slate-800 hover:bg-slate-700 border border-slate-700 text-white text-xs font-semibold flex items-center gap-1.5 transition-all"
@@ -378,8 +383,15 @@ export const CRMView: React.FC<CRMViewProps> = ({
                       />
                     </td>
                     <td className="py-3.5 px-4">
-                      <div className="font-semibold text-slate-900 dark:text-slate-100 text-sm">
-                        {contact.firstName} {contact.lastName}
+                      <div className="flex items-center gap-1.5 flex-wrap">
+                        <span className="font-semibold text-slate-900 dark:text-slate-100 text-sm">
+                          {contact.firstName} {contact.lastName}
+                        </span>
+                        {contact.tags?.includes('lead-discovery') && (
+                          <span className="px-1.5 py-0.5 rounded bg-indigo-500/10 text-indigo-600 dark:text-indigo-400 border border-indigo-500/20 text-[9px] font-bold uppercase tracking-wider">
+                            From Lead Discovery
+                          </span>
+                        )}
                       </div>
                       <div className="text-[11px] text-slate-500 font-mono mt-0.5">
                         {contact.email}
@@ -717,7 +729,7 @@ export const CRMView: React.FC<CRMViewProps> = ({
                     if (onAuditContactEmail) {
                       onAuditContactEmail(selectedContact);
                     } else if (onNavigateTab) {
-                      onNavigateTab('spam-auditor');
+                      onNavigateTab('spamaudit');
                     }
                     setSelectedContact(null);
                   }}

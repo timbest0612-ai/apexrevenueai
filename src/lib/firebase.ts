@@ -1,12 +1,22 @@
 import { initializeApp, getApps, getApp } from 'firebase/app';
 import { getAuth, GoogleAuthProvider, signInWithPopup, signOut, onAuthStateChanged, User as FirebaseUser } from 'firebase/auth';
-import { getFirestore, doc, getDocFromServer, setDoc, getDoc } from 'firebase/firestore';
+import { initializeFirestore, getFirestore, doc, getDocFromServer, setDoc, getDoc, Firestore } from 'firebase/firestore';
 import firebaseConfig from '../../firebase-applet-config.json';
 
 const app = !getApps().length ? initializeApp(firebaseConfig) : getApp();
 
-/* CRITICAL: Passing firestoreDatabaseId ensures connection to the provisioned database */
-export const db = getFirestore(app, firebaseConfig.firestoreDatabaseId);
+/* CRITICAL: initializeFirestore with experimentalAutoDetectLongPolling enables reliable connection
+   in iframe sandboxes, container proxies, and corporate networks without 10-second stream timeouts. */
+let firestoreDb: Firestore;
+try {
+  firestoreDb = initializeFirestore(app, {
+    experimentalAutoDetectLongPolling: true,
+  }, firebaseConfig.firestoreDatabaseId);
+} catch {
+  firestoreDb = getFirestore(app, firebaseConfig.firestoreDatabaseId);
+}
+
+export const db = firestoreDb;
 export const auth = getAuth(app);
 export const googleProvider = new GoogleAuthProvider();
 googleProvider.setCustomParameters({ prompt: 'select_account' });
@@ -116,12 +126,16 @@ export function handleFirestoreError(error: unknown, operationType: OperationTyp
 
 export async function testConnection(): Promise<boolean> {
   try {
-    await getDocFromServer(doc(db, 'test', 'connection'));
+    const fetchDocPromise = getDocFromServer(doc(db, 'test', 'connection'));
+    const timeoutPromise = new Promise<never>((_, reject) =>
+      setTimeout(() => reject(new Error('Firebase connection check timed out; continuing in resilient offline mode')), 6000)
+    );
+    await Promise.race([fetchDocPromise, timeoutPromise]);
     console.log('Connected to persistent Firebase Firestore');
     return true;
   } catch (error) {
-    if (error instanceof Error && error.message.includes('the client is offline')) {
-      console.warn('Firebase Firestore offline notice:', error.message);
+    if (error instanceof Error) {
+      console.info('Firebase Firestore operating in resilient/offline mode:', error.message);
     }
     return false;
   }

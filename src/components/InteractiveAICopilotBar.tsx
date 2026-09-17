@@ -26,12 +26,16 @@ interface InteractiveAICopilotBarProps {
   onNavigateTab: (tab: string) => void;
   onImportLeads?: (leads: DiscoveredLead[]) => void;
   onPreloadLeadSearch?: (query: string) => void;
+  isOpen?: boolean;
+  onClose?: () => void;
 }
 
 export const InteractiveAICopilotBar: React.FC<InteractiveAICopilotBarProps> = ({
   onNavigateTab,
   onImportLeads,
   onPreloadLeadSearch,
+  isOpen = true,
+  onClose,
 }) => {
   const [query, setQuery] = useState('');
   const [loading, setLoading] = useState(false);
@@ -80,9 +84,11 @@ export const InteractiveAICopilotBar: React.FC<InteractiveAICopilotBarProps> = (
     setIsExpanded(false);
   };
 
+  if (!isOpen) return null;
+
   return (
-    <div className="bg-gradient-to-r from-slate-900 via-indigo-950 to-slate-900 text-white border-b border-indigo-500/20 shadow-md">
-      <div className="max-w-7xl mx-auto px-4 py-3">
+    <div className="bg-gradient-to-r from-slate-900 via-indigo-950 to-slate-900 text-white border-b border-indigo-500/30 shadow-md animate-in slide-in-from-top-2 duration-200">
+      <div className="max-w-7xl mx-auto px-4 py-2.5">
         {/* Top Input Bar */}
         <div className="flex flex-col md:flex-row items-stretch md:items-center gap-3">
           <div className="flex items-center gap-2 shrink-0">
@@ -91,8 +97,8 @@ export const InteractiveAICopilotBar: React.FC<InteractiveAICopilotBarProps> = (
             </div>
             <div>
               <div className="flex items-center gap-1.5">
-                <span className="text-xs font-bold text-white tracking-wide">Interactive AI Copilot</span>
-                <span className="text-[9px] uppercase font-extrabold px-1.5 py-0.2 rounded bg-indigo-500/30 text-indigo-200 border border-indigo-400/30">Ask Anything</span>
+                <span className="text-xs font-bold text-white tracking-wide">AI Copilot</span>
+                <span className="text-[9px] uppercase font-extrabold px-1.5 py-0.2 rounded bg-indigo-500/30 text-indigo-200 border border-indigo-400/30">Active</span>
               </div>
             </div>
           </div>
@@ -160,6 +166,17 @@ export const InteractiveAICopilotBar: React.FC<InteractiveAICopilotBarProps> = (
                 <X className="h-3.5 w-3.5" />
               </button>
             </div>
+          )}
+
+          {onClose && (
+            <button
+              type="button"
+              onClick={onClose}
+              className="p-1.5 rounded-lg bg-slate-800/80 hover:bg-slate-700 text-slate-400 hover:text-white transition-colors border border-slate-700 shrink-0"
+              title="Close Copilot (Esc or ⌘J)"
+            >
+              <X className="h-4 w-4" />
+            </button>
           )}
         </div>
 

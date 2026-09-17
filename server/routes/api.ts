@@ -173,6 +173,8 @@ apiRouter.post('/leads/massive-harvest', async (req: Request, res: Response) => 
   try {
     const { 
       targetVolume = 50000, 
+      page = 1,
+      pageSize = 250,
       targetRegion = 'GLOBAL', 
       industry = 'Technology & B2B', 
       whatTheySell = 'Enterprise Software',
@@ -201,11 +203,16 @@ apiRouter.post('/leads/massive-harvest', async (req: Request, res: Response) => 
       brandNiche,
       keywords,
       leadVolume: targetVolume,
+      page: Number(page) || 1,
+      pageSize: Number(pageSize) || 250,
     });
 
     res.json({
       success: true,
       requestedVolume: targetVolume,
+      page: Number(page) || 1,
+      pageSize: Number(pageSize) || 250,
+      totalPages: Math.ceil(scoutResult.totalScouted / (Number(pageSize) || 250)),
       totalHarvested: scoutResult.totalScouted,
       verifiedDeliverableCount: scoutResult.verifiedDeliverableCount,
       avgIntentScore: scoutResult.avgIntentScore,

@@ -546,6 +546,9 @@ export interface GlobalScoutFilter {
   leadVolume: number; // 500 to 100000
   minIntentScore?: number;
   seniority?: string;
+  sampleLimit?: number;
+  page?: number;
+  pageSize?: number;
 }
 
 export interface MassRecipientDispatchLog {

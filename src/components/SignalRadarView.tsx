@@ -26,12 +26,16 @@ interface SignalRadarViewProps {
   currency: CurrencyCode;
   onNavigateTab: (tab: string) => void;
   onEnrollLeadInCampaign?: (leadEmail: string, campaignId?: string) => void;
+  onLaunchMassPitch?: (contact: { name: string; email: string; companyName: string; jobTitle: string }) => void;
+  onVerifyContact?: (email: string) => void;
 }
 
 export const SignalRadarView: React.FC<SignalRadarViewProps> = ({
   currency,
   onNavigateTab,
   onEnrollLeadInCampaign,
+  onLaunchMassPitch,
+  onVerifyContact,
 }) => {
   const [signals, setSignals] = useState<IntentSignalEvent[]>([]);
   const [loading, setLoading] = useState<boolean>(true);
@@ -251,27 +255,56 @@ export const SignalRadarView: React.FC<SignalRadarViewProps> = ({
                     <p className="text-[11px] font-medium text-slate-700 dark:text-slate-300 max-w-xs truncate">{sig.recommendedAction}</p>
                   </div>
 
-                  {sig.status === 'ACTIONED' ? (
-                    <span className="px-3 py-1.5 rounded-lg bg-emerald-500/10 text-emerald-600 dark:text-emerald-400 text-xs font-semibold flex items-center gap-1.5 border border-emerald-500/20">
-                      <Check className="h-3.5 w-3.5" />
-                      <span>Trigger Dispatched</span>
-                    </span>
-                  ) : (
-                    <button
-                      onClick={() => handleActionSignal(sig)}
-                      disabled={actioningId === sig.id}
-                      className="px-4 py-2 rounded-xl bg-indigo-600 hover:bg-indigo-500 disabled:opacity-50 text-white text-xs font-semibold flex items-center gap-1.5 shadow-sm transition-all"
-                    >
-                      {actioningId === sig.id ? (
-                        <div className="h-3.5 w-3.5 border-2 border-white border-t-transparent rounded-full animate-spin" />
-                      ) : (
-                        <>
-                          <Zap className="h-3.5 w-3.5" />
-                          <span>Dispatch AI Outreach</span>
-                        </>
-                      )}
-                    </button>
-                  )}
+                  <div className="flex items-center gap-1.5 flex-wrap justify-end">
+                    {onLaunchMassPitch && sig.contactLead && (
+                      <button
+                        onClick={() => onLaunchMassPitch({
+                          name: sig.contactLead!.name,
+                          email: sig.contactLead!.email,
+                          companyName: sig.companyName,
+                          jobTitle: sig.contactLead!.jobTitle
+                        })}
+                        className="px-2.5 py-1 rounded-lg bg-emerald-50 dark:bg-emerald-950/40 hover:bg-emerald-100 text-emerald-700 dark:text-emerald-300 text-[11px] font-semibold border border-emerald-200 dark:border-emerald-800/60 flex items-center gap-1 transition-colors"
+                        title="Pitch this lead directly in Mass Dispatcher"
+                      >
+                        <Zap className="h-3 w-3 text-emerald-500" />
+                        <span>Mass Pitch</span>
+                      </button>
+                    )}
+
+                    {onVerifyContact && sig.contactLead && (
+                      <button
+                        onClick={() => onVerifyContact(sig.contactLead!.email)}
+                        className="px-2 py-1 rounded-lg bg-slate-100 dark:bg-slate-800 hover:bg-slate-200 text-slate-700 dark:text-slate-300 text-[11px] font-medium border border-slate-200 dark:border-slate-700 flex items-center gap-1 transition-colors"
+                        title="Verify deliverability in Email Lab"
+                      >
+                        <ShieldCheck className="h-3 w-3 text-indigo-500" />
+                        <span>Verify</span>
+                      </button>
+                    )}
+
+                    {sig.status === 'ACTIONED' ? (
+                      <span className="px-3 py-1.5 rounded-lg bg-emerald-500/10 text-emerald-600 dark:text-emerald-400 text-xs font-semibold flex items-center gap-1.5 border border-emerald-500/20">
+                        <Check className="h-3.5 w-3.5" />
+                        <span>Dispatched</span>
+                      </span>
+                    ) : (
+                      <button
+                        onClick={() => handleActionSignal(sig)}
+                        disabled={actioningId === sig.id}
+                        className="px-3 py-1.5 rounded-xl bg-indigo-600 hover:bg-indigo-500 disabled:opacity-50 text-white text-xs font-semibold flex items-center gap-1.5 shadow-sm transition-all"
+                      >
+                        {actioningId === sig.id ? (
+                          <div className="h-3.5 w-3.5 border-2 border-white border-t-transparent rounded-full animate-spin" />
+                        ) : (
+                          <>
+                            <Zap className="h-3.5 w-3.5" />
+                            <span>Dispatch AI</span>
+                          </>
+                        )}
+                      </button>
+                    )}
+                  </div>
                 </div>
               </div>
             </div>

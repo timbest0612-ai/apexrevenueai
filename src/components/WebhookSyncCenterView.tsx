@@ -152,7 +152,7 @@ export const WebhookSyncCenterView: React.FC<WebhookSyncCenterViewProps> = ({
             Refresh Stream
           </button>
           <button
-            onClick={() => onNavigateTab('smart_inbox')}
+            onClick={() => onNavigateTab('inbox')}
             className="flex items-center gap-2 px-3.5 py-2 rounded-lg bg-indigo-600 hover:bg-indigo-500 text-white text-xs font-semibold shadow-lg shadow-indigo-600/20 transition"
           >
             <MessageSquare className="w-3.5 h-3.5" />
@@ -261,7 +261,7 @@ export const WebhookSyncCenterView: React.FC<WebhookSyncCenterViewProps> = ({
                   <div>{testSuccessMessage}</div>
                   <div className="mt-2 flex gap-3">
                     <button
-                      onClick={() => onNavigateTab('smart_inbox')}
+                      onClick={() => onNavigateTab('inbox')}
                       className="text-xs font-semibold text-emerald-400 underline hover:text-emerald-300"
                     >
                       View in Smart Inbox →
