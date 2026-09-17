@@ -27,6 +27,7 @@ import {
 } from 'lucide-react';
 import { DiscoveredLead, GlobalRegion, MassDispatchJob, CurrencyCode } from '../types.js';
 import { formatCurrency, formatNumber } from '../utils/formatters.js';
+import { inferNicheTargeting, POPULAR_GOALS, POPULAR_NICHES } from '../utils/universalNicheEngine.js';
 
 interface MassPitchDispatcherProps {
   currency: CurrencyCode;
@@ -40,26 +41,29 @@ export const MassPitchDispatcher: React.FC<MassPitchDispatcherProps> = ({
   initialLeads = []
 }) => {
   // Step 1: Scouting Filter State
+  const [userGoal, setUserGoal] = useState<string>('I want to generate content for my business');
   const [targetCategory, setTargetCategory] = useState<'BUSINESS' | 'INDIVIDUALS'>('BUSINESS');
-  const [painPoint, setPainPoint] = useState('Losing ~35% of outbound pipeline to manual SDR follow-up bottlenecks');
-  const [targetAudience, setTargetAudience] = useState('B2B SaaS Founders & Revenue Leaders');
-  const [whatTheySell, setWhatTheySell] = useState('B2B SaaS CRM & Automation Tools');
+  const [painPoint, setPainPoint] = useState('Struggling to produce consistent video content & reels without burning out');
+  const [targetAudience, setTargetAudience] = useState('Business Founders, Solo Creators & Agency Directors');
+  const [whatTheySell, setWhatTheySell] = useState('Digital Content & Brand Growth');
   const [targetRegion, setTargetRegion] = useState<GlobalRegion>('GLOBAL');
-  const [leadVolume, setLeadVolume] = useState<number>(2000);
+  const [leadVolume, setLeadVolume] = useState<number>(initialLeads.length > 0 ? initialLeads.length : 2000);
   const [minIntentScore, setMinIntentScore] = useState<number>(80);
   const [isScouting, setIsScouting] = useState(false);
   const [scoutedLeads, setScoutedLeads] = useState<DiscoveredLead[]>(initialLeads);
   const [totalScoutedCount, setTotalScoutedCount] = useState<number>(initialLeads.length || 2000);
   const [marketSummary, setMarketSummary] = useState('');
 
-  // Step 2: Mass Pitch Composition State
-  const [campaignName, setCampaignName] = useState('Global Outreach 2026 - Scaled Acquisition');
-  const [myOffer, setMyOffer] = useState('AI Automated Customer Acquisition & Revenue Pipeline Engine');
+  // Step 2: Mass Pitch Composition & Flexible Recipient Count (Dispatches to the EXACT number scouted)
+  const [pitchTargetVolume, setPitchTargetVolume] = useState<number>(initialLeads.length || 2000);
+  const [pitchVolumeMode, setPitchVolumeMode] = useState<'MATCH_SCOUTED' | 'CUSTOM'>('MATCH_SCOUTED');
+  const [campaignName, setCampaignName] = useState('Targeted Outreach 2026 - Scaled Acquisition');
+  const [myOffer, setMyOffer] = useState('AI Automated Content Creation & Organic Client Acquisition');
   const [channel, setChannel] = useState<'email' | 'whatsapp' | 'omnichannel'>('email');
   const [dispatchSpeed, setDispatchSpeed] = useState<'INSTANT_TURBO' | 'SMART_RAMPED'>('INSTANT_TURBO');
   const [subject, setSubject] = useState('Quick idea for solving {{pain_point}} at {{company}}');
   const [bodyMessage, setBodyMessage] = useState(
-    `Hi {{first_name}},\n\nI noticed {{company}} is serving {{target_audience}} in {{what_they_sell}} across {{city}}.\n\nMost leaders we speak with struggle with {{pain_point}}. We built ApexRevenue AI to solve exactly that, helping teams acquire qualified clients at scale with zero-bounce verified delivery.\n\nWould you be open to a 5-minute chat on how we eliminated this bottleneck for similar companies?\n\nBest regards,\nTim Best\nApexRevenue AI`
+    `Hi {{first_name}},\n\nI noticed {{company}} is serving {{target_audience}} in {{what_they_sell}} across {{city}}.\n\nMost leaders we speak with struggle with {{pain_point}}. We built a system to solve exactly that, helping teams acquire qualified clients at scale with zero-bounce verified delivery.\n\nWould you be open to a 5-minute chat on how we eliminated this bottleneck for similar companies?\n\nBest regards,\nTim Best\nApexRevenue AI`
   );
   const [previewLeadIndex, setPreviewLeadIndex] = useState(0);
 
@@ -69,10 +73,23 @@ export const MassPitchDispatcher: React.FC<MassPitchDispatcherProps> = ({
   const [activeJob, setActiveJob] = useState<MassDispatchJob | null>(null);
   const [dispatchLogs, setDispatchLogs] = useState<any[]>([]);
 
+  // Apply goal and niche helper to infer pain points, target audience, and prefill pitch templates
+  const handleApplyGoalAndNiche = (newGoal: string, newNiche: string, cat = targetCategory) => {
+    setUserGoal(newGoal);
+    setWhatTheySell(newNiche);
+    const inferred = inferNicheTargeting(newGoal, newNiche, cat);
+    setTargetAudience(inferred.targetAudience);
+    setPainPoint(inferred.defaultPainPoint);
+    setMyOffer(newGoal);
+    setSubject(inferred.defaultSubject);
+    setBodyMessage(inferred.defaultPitchBody);
+    handleScoutLeads(leadVolume, newNiche, targetRegion, inferred.defaultPainPoint, inferred.targetAudience, cat, newGoal);
+  };
+
   // Pre-scout initial batch if none provided
   useEffect(() => {
     if (scoutedLeads.length === 0) {
-      handleScoutLeads(2000, whatTheySell, targetRegion, painPoint, targetAudience, targetCategory);
+      handleScoutLeads(2000, whatTheySell, targetRegion, painPoint, targetAudience, targetCategory, userGoal);
     }
   }, []);
 
@@ -82,7 +99,8 @@ export const MassPitchDispatcher: React.FC<MassPitchDispatcherProps> = ({
     region: GlobalRegion = targetRegion,
     currentPain: string = painPoint,
     currentAudience: string = targetAudience,
-    currentCat: 'BUSINESS' | 'INDIVIDUALS' = targetCategory
+    currentCat: 'BUSINESS' | 'INDIVIDUALS' = targetCategory,
+    currentUserGoal: string = userGoal
   ) => {
     setIsScouting(true);
     try {
@@ -90,6 +108,7 @@ export const MassPitchDispatcher: React.FC<MassPitchDispatcherProps> = ({
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
+          userGoal: currentUserGoal,
           targetCategory: currentCat === 'BUSINESS' ? 'BUSINESS_B2B' : 'INDIVIDUALS',
           whatTheySell: selling,
           targetRegion: region,
@@ -101,9 +120,14 @@ export const MassPitchDispatcher: React.FC<MassPitchDispatcherProps> = ({
       });
       const data = await res.json();
       if (data.success) {
-        setScoutedLeads(data.leads || []);
-        setTotalScoutedCount(data.totalScouted || volume);
+        const returnedLeads = data.leads || [];
+        const returnedCount = data.totalScouted || returnedLeads.length || volume;
+        setScoutedLeads(returnedLeads);
+        setTotalScoutedCount(returnedCount);
         setMarketSummary(data.marketSummary || '');
+        if (pitchVolumeMode === 'MATCH_SCOUTED') {
+          setPitchTargetVolume(returnedCount);
+        }
       }
     } catch (err) {
       console.error('Failed to scout leads:', err);
@@ -175,7 +199,7 @@ export const MassPitchDispatcher: React.FC<MassPitchDispatcherProps> = ({
           campaignName,
           targetOffer: myOffer,
           whatTheySell,
-          totalRecipients: activeJob ? activeJob.totalRecipients : totalScoutedCount || leadVolume,
+          totalRecipients: pitchTargetVolume > 0 ? pitchTargetVolume : (totalScoutedCount || leadVolume),
           channel,
           dispatchSpeed,
           subject,
@@ -269,24 +293,24 @@ export const MassPitchDispatcher: React.FC<MassPitchDispatcherProps> = ({
           <div className="space-y-2 max-w-2xl">
             <div className="inline-flex items-center gap-2 px-3 py-1 rounded-full bg-indigo-500/20 border border-indigo-400/30 text-indigo-300 text-xs font-semibold">
               <Globe className="h-3.5 w-3.5 text-indigo-400 animate-spin" />
-              <span>Worldwide High-Capacity Acquisition Engine</span>
+              <span>Universal Any-Niche Acquisition & Mass Dispatch Engine</span>
             </div>
             <h1 className="text-2xl md:text-3xl font-bold tracking-tight text-white">
-              Scout Global Clients & Send 1 Pitch to 2,000–5,000+ at Once
+              Target Any Niche & Send 1 Pitch to All Scouted Leads (Up to 100,000+)
             </h1>
             <p className="text-slate-300 text-sm leading-relaxed">
-              Find verified, high-intent decision makers anywhere in the world who are selling in your target niche. 
-              Compose a single personalized pitch and dispatch to thousands simultaneously with zero-bounce protection.
+              Tell the engine what you want to do (e.g. generate content, sell products, acquire clients) and what niche you are targeting. 
+              The software locates prospects experiencing active pain in that direction and dispatches your pitch directly to all scouted prospects at once with zero-bounce deliverability.
             </p>
           </div>
 
           <div className="flex flex-col sm:flex-row md:flex-col gap-3 shrink-0">
             <div className="p-4 rounded-xl bg-white/10 backdrop-blur-md border border-white/15 text-center">
-              <span className="text-[11px] uppercase tracking-wider text-slate-300 font-semibold block">Currently Ready Leads</span>
+              <span className="text-[11px] uppercase tracking-wider text-slate-300 font-semibold block">Currently Scouted Leads</span>
               <span className="text-2xl font-black text-emerald-400">
                 {formatNumber(totalScoutedCount || leadVolume)}
               </span>
-              <span className="text-[10px] text-slate-300 block mt-0.5">100% Zero-Bounce Verified</span>
+              <span className="text-[10px] text-slate-300 block mt-0.5">Ready for 1-Click Mass Pitch</span>
             </div>
           </div>
         </div>
@@ -305,16 +329,90 @@ export const MassPitchDispatcher: React.FC<MassPitchDispatcherProps> = ({
                 </div>
                 <div>
                   <h2 className="text-base font-bold text-slate-900 dark:text-slate-100">
-                    1. Scout Worldwide Ready & Verified Leads
+                    1. What Do You Want To Do? (Universal Niche & Intent)
                   </h2>
                   <p className="text-xs text-slate-500">
-                    Filter by pain point, target audience, what they sell, and volume (up to 100,000)
+                    Define your intent or offer; the engine pinpoints prospects facing direct pain in that direction
                   </p>
                 </div>
               </div>
               <span className="px-2.5 py-1 rounded-full bg-emerald-500/10 border border-emerald-500/20 text-emerald-600 dark:text-emerald-400 text-[10px] font-bold">
-                Auto-Verified MX
+                Universal Niche AI
               </span>
+            </div>
+
+            {/* WHAT DO I WANT TO DO? Prominent Intent Input */}
+            <div className="p-4 rounded-xl bg-indigo-50/70 dark:bg-indigo-950/40 border border-indigo-200 dark:border-indigo-800/60 space-y-2.5">
+              <label className="block text-xs font-bold text-indigo-900 dark:text-indigo-200 flex items-center justify-between">
+                <span>What do you want to do? (Your Goal / Intent)</span>
+                <span className="text-[10px] text-indigo-600 dark:text-indigo-400 font-normal">Works for ANY product, service, or business</span>
+              </label>
+              <input
+                type="text"
+                value={userGoal}
+                onChange={(e) => {
+                  setUserGoal(e.target.value);
+                  const inf = inferNicheTargeting(e.target.value, whatTheySell, targetCategory);
+                  setPainPoint(inf.defaultPainPoint);
+                  setTargetAudience(inf.targetAudience);
+                }}
+                placeholder="e.g. I want to generate content for my business, I want to sell physical products online..."
+                className="w-full px-3.5 py-2.5 text-xs rounded-xl border border-indigo-300 dark:border-indigo-700 bg-white dark:bg-slate-900 text-slate-900 dark:text-slate-100 font-semibold focus:outline-none focus:ring-2 focus:ring-indigo-500"
+              />
+              <div className="flex flex-wrap gap-1.5 pt-0.5">
+                <span className="text-[10px] text-slate-500 dark:text-slate-400 font-semibold self-center">Popular Goals:</span>
+                {POPULAR_GOALS.slice(0, 5).map((goal) => (
+                  <button
+                    key={goal}
+                    type="button"
+                    onClick={() => handleApplyGoalAndNiche(goal, whatTheySell)}
+                    className={`px-2.5 py-1 rounded-lg text-[10px] font-semibold transition-all cursor-pointer ${
+                      userGoal === goal
+                        ? 'bg-indigo-600 text-white shadow-xs'
+                        : 'bg-white dark:bg-slate-800 text-slate-700 dark:text-slate-300 border border-slate-200 dark:border-slate-700 hover:bg-slate-100'
+                    }`}
+                  >
+                    {goal}
+                  </button>
+                ))}
+              </div>
+            </div>
+
+            {/* What they sell / Niche field */}
+            <div className="space-y-2">
+              <label className="block text-xs font-semibold text-slate-700 dark:text-slate-300 flex items-center justify-between">
+                <span>Niche or What You / Target Clients Sell</span>
+                <span className="text-[10px] text-slate-400">Any niche online</span>
+              </label>
+              <input
+                type="text"
+                value={whatTheySell}
+                onChange={(e) => {
+                  setWhatTheySell(e.target.value);
+                  const inf = inferNicheTargeting(userGoal, e.target.value, targetCategory);
+                  setPainPoint(inf.defaultPainPoint);
+                  setTargetAudience(inf.targetAudience);
+                }}
+                placeholder="e.g. Content Creation & Video Editing, Fitness Coaching, Real Estate, E-Commerce..."
+                className="w-full px-3.5 py-2 text-xs rounded-xl border border-slate-300 dark:border-slate-700 bg-white dark:bg-slate-800 text-slate-900 dark:text-slate-100 focus:outline-none focus:ring-2 focus:ring-indigo-500 font-medium"
+              />
+              <div className="flex flex-wrap gap-1.5 pt-0.5">
+                <span className="text-[10px] text-slate-500 dark:text-slate-400 font-semibold self-center">Niche Presets:</span>
+                {POPULAR_NICHES.slice(0, 6).map((niche) => (
+                  <button
+                    key={niche}
+                    type="button"
+                    onClick={() => handleApplyGoalAndNiche(userGoal, niche)}
+                    className={`px-2.5 py-1 rounded-lg text-[10px] font-semibold transition-all cursor-pointer ${
+                      whatTheySell === niche
+                        ? 'bg-purple-600 text-white shadow-xs'
+                        : 'bg-slate-100 dark:bg-slate-800 text-slate-700 dark:text-slate-300 hover:bg-slate-200'
+                    }`}
+                  >
+                    {niche}
+                  </button>
+                ))}
+              </div>
             </div>
 
             {/* Target Category Selector */}
@@ -327,7 +425,7 @@ export const MassPitchDispatcher: React.FC<MassPitchDispatcherProps> = ({
                   type="button"
                   onClick={() => {
                     setTargetCategory('BUSINESS');
-                    handleScoutLeads(leadVolume, whatTheySell, targetRegion, painPoint, targetAudience, 'BUSINESS');
+                    handleScoutLeads(leadVolume, whatTheySell, targetRegion, painPoint, targetAudience, 'BUSINESS', userGoal);
                   }}
                   className={`py-2 px-3 rounded-xl text-xs font-bold transition-all border flex items-center justify-center gap-2 cursor-pointer ${
                     targetCategory === 'BUSINESS'
@@ -342,7 +440,7 @@ export const MassPitchDispatcher: React.FC<MassPitchDispatcherProps> = ({
                   type="button"
                   onClick={() => {
                     setTargetCategory('INDIVIDUALS');
-                    handleScoutLeads(leadVolume, whatTheySell, targetRegion, painPoint, targetAudience, 'INDIVIDUALS');
+                    handleScoutLeads(leadVolume, whatTheySell, targetRegion, painPoint, targetAudience, 'INDIVIDUALS', userGoal);
                   }}
                   className={`py-2 px-3 rounded-xl text-xs font-bold transition-all border flex items-center justify-center gap-2 cursor-pointer ${
                     targetCategory === 'INDIVIDUALS'
@@ -351,39 +449,40 @@ export const MassPitchDispatcher: React.FC<MassPitchDispatcherProps> = ({
                   }`}
                 >
                   <Users className="w-3.5 h-3.5" />
-                  <span>Individuals & Scholars</span>
+                  <span>Individuals & Solo Professionals</span>
                 </button>
               </div>
             </div>
 
-            {/* Pain Point Selector */}
+            {/* Pain Point Selector (Dynamically Inferred from Goal & Niche) */}
             <div className="space-y-1.5">
-              <label className="block text-xs font-semibold text-slate-700 dark:text-slate-300">
-                Pain Point They Need Solved
+              <label className="block text-xs font-semibold text-slate-700 dark:text-slate-300 flex items-center justify-between">
+                <span>Prospect Pain Point To Solve (Inferred by AI)</span>
+                <span className="text-[10px] text-amber-600 dark:text-amber-400 font-medium">Click to select pain signal</span>
               </label>
               <input
                 type="text"
                 value={painPoint}
                 onChange={(e) => setPainPoint(e.target.value)}
-                placeholder="e.g. Losing 35% pipeline to manual follow-ups, high customer acquisition cost..."
+                placeholder="Active pain point prospects are struggling with..."
                 className="w-full px-3.5 py-2 text-xs rounded-xl border border-slate-300 dark:border-slate-700 bg-white dark:bg-slate-800 text-slate-900 dark:text-slate-100 focus:outline-none focus:ring-2 focus:ring-indigo-500 font-medium"
               />
               <div className="flex flex-wrap gap-1.5 pt-1">
-                {(targetCategory === 'BUSINESS' ? PAIN_POINT_PRESETS : INDIVIDUAL_PAIN_PRESETS).map((p) => (
+                {inferNicheTargeting(userGoal, whatTheySell, targetCategory).painPoints.map((p) => (
                   <button
                     key={p}
                     type="button"
                     onClick={() => {
                       setPainPoint(p);
-                      handleScoutLeads(leadVolume, whatTheySell, targetRegion, p, targetAudience, targetCategory);
+                      handleScoutLeads(leadVolume, whatTheySell, targetRegion, p, targetAudience, targetCategory, userGoal);
                     }}
-                    className={`px-2.5 py-1 rounded-lg text-[10px] font-medium transition-colors ${
+                    className={`px-2.5 py-1 rounded-lg text-[10px] font-medium transition-colors text-left ${
                       painPoint === p
-                        ? 'bg-amber-500 text-white'
+                        ? 'bg-amber-500 text-white shadow-xs'
                         : 'bg-slate-100 dark:bg-slate-800 text-slate-600 dark:text-slate-300 hover:bg-slate-200'
                     }`}
                   >
-                    {p.length > 50 ? `${p.slice(0, 50)}...` : p}
+                    {p}
                   </button>
                 ))}
               </div>
@@ -398,65 +497,9 @@ export const MassPitchDispatcher: React.FC<MassPitchDispatcherProps> = ({
                 type="text"
                 value={targetAudience}
                 onChange={(e) => setTargetAudience(e.target.value)}
-                placeholder="e.g. B2B SaaS Founders, E-Commerce Brand Owners, Agency Directors..."
+                placeholder="e.g. Business Founders, Fitness Coaches, Agency Directors..."
                 className="w-full px-3.5 py-2 text-xs rounded-xl border border-slate-300 dark:border-slate-700 bg-white dark:bg-slate-800 text-slate-900 dark:text-slate-100 focus:outline-none focus:ring-2 focus:ring-indigo-500 font-medium"
               />
-              <div className="flex flex-wrap gap-1.5 pt-1">
-                {AUDIENCE_PRESETS.map((aud) => (
-                  <button
-                    key={aud}
-                    type="button"
-                    onClick={() => {
-                      setTargetAudience(aud);
-                      handleScoutLeads(leadVolume, whatTheySell, targetRegion, painPoint, aud, targetCategory);
-                    }}
-                    className={`px-2 py-0.5 rounded-lg text-[10px] font-medium transition-colors ${
-                      targetAudience === aud
-                        ? 'bg-blue-600 text-white'
-                        : 'bg-slate-100 dark:bg-slate-800 text-slate-600 dark:text-slate-300 hover:bg-slate-200'
-                    }`}
-                  >
-                    {aud}
-                  </button>
-                ))}
-              </div>
-            </div>
-
-            {/* What they sell search field */}
-            <div className="space-y-2">
-              <label className="block text-xs font-semibold text-slate-700 dark:text-slate-300">
-                What are your target clients selling? (Niche / Product Offer)
-              </label>
-              <div className="relative">
-                <input
-                  type="text"
-                  value={whatTheySell}
-                  onChange={(e) => setWhatTheySell(e.target.value)}
-                  placeholder="e.g. Selling B2B SaaS CRM, E-commerce Fashion, Solar Panels, SEO Services..."
-                  className="w-full px-3.5 py-2.5 text-xs rounded-xl border border-slate-300 dark:border-slate-700 bg-white dark:bg-slate-800 text-slate-900 dark:text-slate-100 focus:outline-none focus:ring-2 focus:ring-indigo-500 font-medium"
-                />
-              </div>
-
-              {/* Quick Niche Chips */}
-              <div className="flex flex-wrap gap-1.5 pt-1">
-                {NICHE_SUGGESTIONS.map((niche) => (
-                  <button
-                    key={niche}
-                    type="button"
-                    onClick={() => {
-                      setWhatTheySell(niche);
-                      handleScoutLeads(leadVolume, niche, targetRegion, painPoint, targetAudience, targetCategory);
-                    }}
-                    className={`px-2.5 py-1 rounded-lg text-[11px] font-medium transition-colors ${
-                      whatTheySell === niche
-                        ? 'bg-indigo-600 text-white'
-                        : 'bg-slate-100 dark:bg-slate-800 text-slate-600 dark:text-slate-300 hover:bg-slate-200'
-                    }`}
-                  >
-                    {niche}
-                  </button>
-                ))}
-              </div>
             </div>
 
             {/* Region & Volume Controls */}
@@ -470,7 +513,7 @@ export const MassPitchDispatcher: React.FC<MassPitchDispatcherProps> = ({
                   onChange={(e) => {
                     const reg = e.target.value as GlobalRegion;
                     setTargetRegion(reg);
-                    handleScoutLeads(leadVolume, whatTheySell, reg, painPoint, targetAudience, targetCategory);
+                    handleScoutLeads(leadVolume, whatTheySell, reg, painPoint, targetAudience, targetCategory, userGoal);
                   }}
                   className="w-full px-3 py-2 text-xs rounded-xl border border-slate-300 dark:border-slate-700 bg-white dark:bg-slate-800 text-slate-900 dark:text-slate-100 font-medium focus:ring-2 focus:ring-indigo-500"
                 >
@@ -486,7 +529,7 @@ export const MassPitchDispatcher: React.FC<MassPitchDispatcherProps> = ({
 
               <div className="space-y-1.5">
                 <label className="block text-xs font-semibold text-slate-700 dark:text-slate-300">
-                  Batch Lead Volume
+                  Target Scout Volume (Up to 100,000)
                 </label>
                 <div className="grid grid-cols-3 sm:grid-cols-6 gap-1.5">
                   {[1000, 5000, 10000, 25000, 50000, 100000].map((vol) => (
@@ -495,7 +538,7 @@ export const MassPitchDispatcher: React.FC<MassPitchDispatcherProps> = ({
                       type="button"
                       onClick={() => {
                         setLeadVolume(vol);
-                        handleScoutLeads(vol, whatTheySell, targetRegion, painPoint, targetAudience, targetCategory);
+                        handleScoutLeads(vol, whatTheySell, targetRegion, painPoint, targetAudience, targetCategory, userGoal);
                       }}
                       className={`py-2 rounded-xl text-xs font-bold transition-all cursor-pointer ${
                         leadVolume === vol
@@ -514,19 +557,19 @@ export const MassPitchDispatcher: React.FC<MassPitchDispatcherProps> = ({
             <div className="pt-2 flex items-center justify-between gap-3">
               <button
                 type="button"
-                onClick={() => handleScoutLeads(leadVolume, whatTheySell, targetRegion, painPoint, targetAudience, targetCategory)}
+                onClick={() => handleScoutLeads(leadVolume, whatTheySell, targetRegion, painPoint, targetAudience, targetCategory, userGoal)}
                 disabled={isScouting}
                 className="w-full py-2.5 rounded-xl bg-indigo-600 hover:bg-indigo-700 text-white text-xs font-bold transition-colors flex items-center justify-center gap-2 shadow-sm disabled:opacity-50"
               >
                 {isScouting ? (
                   <>
                     <RefreshCw className="h-4 w-4 animate-spin" />
-                    <span>Scouting {leadVolume.toLocaleString()} Worldwide Verified Leads...</span>
+                    <span>Scouting {leadVolume.toLocaleString()} Verified Leads for "{whatTheySell}"...</span>
                   </>
                 ) : (
                   <>
                     <Globe className="h-4 w-4" />
-                    <span>Scout {leadVolume.toLocaleString()} Verified Decision Makers Now</span>
+                    <span>Scout {leadVolume.toLocaleString()} Prospects Facing This Pain Now</span>
                   </>
                 )}
               </button>
@@ -714,6 +757,81 @@ export const MassPitchDispatcher: React.FC<MassPitchDispatcherProps> = ({
               />
             </div>
 
+            {/* Flexible Pitch Recipient Volume (Exact Scouted Count - No 2,000 Cap) */}
+            <div className="p-4 rounded-xl bg-slate-50 dark:bg-slate-800/80 border border-slate-200 dark:border-slate-700/80 space-y-3">
+              <div className="flex items-center justify-between">
+                <div>
+                  <label className="text-xs font-bold text-slate-900 dark:text-slate-100 flex items-center gap-1.5">
+                    <Users className="h-4 w-4 text-indigo-600 dark:text-indigo-400" />
+                    <span>How Many Scouted Prospects Should Receive This Pitch?</span>
+                  </label>
+                  <p className="text-[11px] text-slate-500 mt-0.5">
+                    No forced 2,000 benchmark. Dispatch to the exact number scouted ({(totalScoutedCount || leadVolume).toLocaleString()}) or any custom count up to 100,000+.
+                  </p>
+                </div>
+                <span className="text-xs font-black text-indigo-600 dark:text-indigo-400 px-2.5 py-1 rounded-lg bg-indigo-50 dark:bg-indigo-950/60 border border-indigo-200 dark:border-indigo-800">
+                  Target: {pitchTargetVolume.toLocaleString()}
+                </span>
+              </div>
+
+              <div className="grid grid-cols-1 sm:grid-cols-2 gap-2">
+                <button
+                  type="button"
+                  onClick={() => {
+                    setPitchVolumeMode('MATCH_SCOUTED');
+                    setPitchTargetVolume(totalScoutedCount || leadVolume);
+                  }}
+                  className={`py-2 px-3 rounded-xl text-xs font-bold transition-all border flex items-center justify-center gap-2 cursor-pointer ${
+                    pitchVolumeMode === 'MATCH_SCOUTED' && pitchTargetVolume === (totalScoutedCount || leadVolume)
+                      ? 'bg-emerald-600 text-white border-emerald-600 shadow-xs'
+                      : 'bg-white dark:bg-slate-900 text-slate-700 dark:text-slate-300 border-slate-200 dark:border-slate-700 hover:bg-slate-100'
+                  }`}
+                >
+                  <CheckCircle2 className="h-3.5 w-3.5" />
+                  <span>Pitch All {(totalScoutedCount || leadVolume).toLocaleString()} Scouted Leads</span>
+                </button>
+
+                <div className="flex items-center gap-1.5">
+                  <span className="text-xs text-slate-500 whitespace-nowrap">Custom:</span>
+                  <input
+                    type="number"
+                    min={1}
+                    max={500000}
+                    value={pitchTargetVolume}
+                    onChange={(e) => {
+                      const val = Math.max(1, parseInt(e.target.value) || 1);
+                      setPitchVolumeMode('CUSTOM');
+                      setPitchTargetVolume(val);
+                    }}
+                    className="w-full px-3 py-1.5 text-xs rounded-xl border border-slate-300 dark:border-slate-700 bg-white dark:bg-slate-900 text-slate-900 dark:text-slate-100 font-bold focus:outline-none focus:ring-2 focus:ring-indigo-500"
+                    placeholder="e.g. 500, 3500, 100000..."
+                  />
+                </div>
+              </div>
+
+              {/* Quick volume chips */}
+              <div className="flex flex-wrap items-center gap-1.5 pt-1">
+                <span className="text-[10px] text-slate-400 font-medium">Quick Presets:</span>
+                {[500, 1000, 2500, 5000, 10000, 25000, 50000, 100000].map((v) => (
+                  <button
+                    key={v}
+                    type="button"
+                    onClick={() => {
+                      setPitchVolumeMode('CUSTOM');
+                      setPitchTargetVolume(v);
+                    }}
+                    className={`px-2 py-0.5 rounded-lg text-[10px] font-semibold transition-colors cursor-pointer ${
+                      pitchTargetVolume === v
+                        ? 'bg-indigo-600 text-white shadow-xs'
+                        : 'bg-white dark:bg-slate-900 text-slate-600 dark:text-slate-300 border border-slate-200 dark:border-slate-700 hover:bg-slate-100'
+                    }`}
+                  >
+                    {v >= 1000 ? `${v / 1000}k` : v}
+                  </button>
+                ))}
+              </div>
+            </div>
+
             {/* 1-Click Mass Send Button */}
             <div className="pt-2">
               <button
@@ -726,14 +844,14 @@ export const MassPitchDispatcher: React.FC<MassPitchDispatcherProps> = ({
                   <>
                     <RefreshCw className="h-5 w-5 animate-spin" />
                     <span>
-                      Dispatching to {scoutedLeads.length.toLocaleString()} clients simultaneously ({dispatchProgress}%)...
+                      Dispatching to {pitchTargetVolume.toLocaleString()} clients simultaneously ({dispatchProgress}%)...
                     </span>
                   </>
                 ) : (
                   <>
                     <Send className="h-5 w-5" />
                     <span>
-                      Send One Message to All {scoutedLeads.length.toLocaleString()} Clients at Once
+                      Send One Message to All {pitchTargetVolume.toLocaleString()} Prospects at Once
                     </span>
                   </>
                 )}
@@ -868,7 +986,7 @@ export const MassPitchDispatcher: React.FC<MassPitchDispatcherProps> = ({
               <div className="p-3 rounded-xl bg-slate-50 dark:bg-slate-800/60 border border-slate-100 dark:border-slate-800">
                 <span className="text-[10px] text-slate-500 font-semibold block">Total Recipients</span>
                 <span className="text-lg font-bold text-slate-900 dark:text-slate-100">
-                  {formatNumber(activeJob ? activeJob.totalRecipients : totalScoutedCount || leadVolume)}
+                  {formatNumber(activeJob ? activeJob.totalRecipients : pitchTargetVolume || totalScoutedCount || leadVolume)}
                 </span>
               </div>
 
@@ -882,14 +1000,14 @@ export const MassPitchDispatcher: React.FC<MassPitchDispatcherProps> = ({
               <div className="p-3 rounded-xl bg-blue-500/10 border border-blue-500/20">
                 <span className="text-[10px] text-blue-700 dark:text-blue-400 font-semibold block">Estimated Opens</span>
                 <span className="text-lg font-bold text-blue-600 dark:text-blue-400">
-                  {formatNumber(Math.round((activeJob ? activeJob.totalRecipients : totalScoutedCount || leadVolume) * 0.612))} (61%)
+                  {formatNumber(Math.round((activeJob ? activeJob.totalRecipients : pitchTargetVolume || totalScoutedCount || leadVolume) * 0.612))} (61%)
                 </span>
               </div>
 
               <div className="p-3 rounded-xl bg-purple-500/10 border border-purple-500/20">
                 <span className="text-[10px] text-purple-700 dark:text-purple-400 font-semibold block">Pipeline Attributed</span>
                 <span className="text-lg font-bold text-purple-600 dark:text-purple-400">
-                  {formatCurrency((activeJob ? activeJob.totalRecipients : totalScoutedCount || leadVolume) * 48.5, currency)}
+                  {formatCurrency((activeJob ? activeJob.totalRecipients : pitchTargetVolume || totalScoutedCount || leadVolume) * 48.5, currency)}
                 </span>
               </div>
             </div>

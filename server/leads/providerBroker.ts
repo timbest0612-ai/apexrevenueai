@@ -1,4 +1,5 @@
 import { DiscoveredLead, LeadDiscoveryFilter, GlobalScoutFilter, LeadTargetCategory, DomainProviderFilter } from '../../src/types.js';
+import { inferNicheTargeting } from '../../src/utils/universalNicheEngine.js';
 import { generateJSONWithGemini } from '../ai/geminiClient.js';
 import { verifySingleEmail } from '../verification/verifierEngine.js';
 
@@ -702,7 +703,13 @@ export async function scoutGlobalHighVolumeLeads(filter: GlobalScoutFilter): Pro
 
   // Salt seed to guarantee unique, distinct contacts when switching categories, pain points, or queries
   const seed = hashString(
-    `${targetCategory}_${filter.painPoint || ''}_${filter.targetAudience || ''}_${filter.whatTheySell || ''}_${filter.keywords || ''}_${filter.industry || ''}`
+    `${targetCategory}_${filter.userGoal || ''}_${filter.painPoint || ''}_${filter.targetAudience || ''}_${filter.whatTheySell || ''}_${filter.keywords || ''}_${filter.industry || ''}`
+  );
+
+  const inferred = inferNicheTargeting(
+    filter.userGoal || 'I want to generate content for my business',
+    filter.whatTheySell || filter.industry || 'Commercial Enterprise',
+    targetCategory === 'INDIVIDUALS' ? 'INDIVIDUALS' : 'BUSINESS'
   );
 
   for (let i = 0; i < targetCount; i++) {
@@ -719,7 +726,7 @@ export async function scoutGlobalHighVolumeLeads(filter: GlobalScoutFilter): Pro
     let department = 'Management';
     let entityName = '';
     let entityDomain = '';
-    let industry = filter.industry || 'Commercial Enterprise';
+    let industry = filter.industry && filter.industry !== 'All' ? filter.industry : (inferred.industry || 'Commercial Enterprise');
     let schoolOrUniversity: string | undefined = undefined;
     let courseOrDegree: string | undefined = undefined;
     let cryptoNiche: string | undefined = undefined;
@@ -732,21 +739,17 @@ export async function scoutGlobalHighVolumeLeads(filter: GlobalScoutFilter): Pro
     let twitterUrl: string | undefined;
     let telegramHandle: string | undefined;
 
-    const rawWhatTheySell = filter.whatTheySell || 'B2B Enterprise Software & Pipeline Systems';
-    const rawTargetAudience = filter.targetAudience || (
-      targetCategory === 'INDIVIDUALS' || targetCategory === 'INDIVIDUALS_B2C'
-        ? 'Direct Consumers & Independent Clients'
-        : 'Mid-Market & Enterprise Companies'
-    );
+    const rawWhatTheySell = filter.whatTheySell || inferred.niche;
+    const rawTargetAudience = filter.targetAudience || inferred.targetAudience;
     const rawPainPoint = filter.painPoint || (
       targetCategory === 'INDIVIDUALS' || targetCategory === 'INDIVIDUALS_B2C'
-        ? INDIVIDUAL_PAIN_POINTS[saltedIndex % INDIVIDUAL_PAIN_POINTS.length]
-        : BUSINESS_PAIN_POINTS[saltedIndex % BUSINESS_PAIN_POINTS.length]
+        ? (inferred.painPoints[saltedIndex % inferred.painPoints.length] || INDIVIDUAL_PAIN_POINTS[saltedIndex % INDIVIDUAL_PAIN_POINTS.length])
+        : (inferred.painPoints[saltedIndex % inferred.painPoints.length] || BUSINESS_PAIN_POINTS[saltedIndex % BUSINESS_PAIN_POINTS.length])
     );
 
     const painLower = rawPainPoint.toLowerCase();
 
-    const companySlug = (filter.keywords || filter.whatTheySell || 'apex')
+    const companySlug = (filter.keywords || filter.whatTheySell || inferred.niche || 'apex')
       .toLowerCase()
       .replace(/[^a-z0-9]/g, '')
       .slice(0, 10) || 'globalflow';
@@ -822,26 +825,36 @@ export async function scoutGlobalHighVolumeLeads(filter: GlobalScoutFilter): Pro
       techStack = brandItem.tech;
     }
     else {
-      // BUSINESS & B2B Decision Makers selected directly by the pain point
-      let matchedRoles = B2B_SENIORITIES;
-      if (painLower.includes('sales') || painLower.includes('pipeline') || painLower.includes('outbound') || painLower.includes('sdr') || painLower.includes('lead') || painLower.includes('pitch')) {
-        matchedRoles = B2B_SENIORITIES.filter(r => r.focus === 'sales' || r.focus === 'growth');
-      } else if (painLower.includes('deliverability') || painLower.includes('spam') || painLower.includes('domain') || painLower.includes('tech') || painLower.includes('api') || painLower.includes('security')) {
-        matchedRoles = B2B_SENIORITIES.filter(r => r.focus === 'tech');
-      } else if (painLower.includes('cac') || painLower.includes('ad') || painLower.includes('marketing') || painLower.includes('traffic') || painLower.includes('brand')) {
-        matchedRoles = B2B_SENIORITIES.filter(r => r.focus === 'marketing' || r.focus === 'growth');
-      } else if (painLower.includes('churn') || painLower.includes('onboarding') || painLower.includes('operation') || painLower.includes('procurement')) {
-        matchedRoles = B2B_SENIORITIES.filter(r => r.focus === 'operations' || r.focus === 'procurement');
-      }
-      if (matchedRoles.length === 0) matchedRoles = B2B_SENIORITIES;
+      // BUSINESS & B2B Decision Makers selected directly by the pain point or inferred niche
+      if (inferred.targetRoles && inferred.targetRoles.length > 0 && (filter.userGoal || filter.whatTheySell)) {
+        const role = inferred.targetRoles[saltedIndex % inferred.targetRoles.length];
+        jobTitle = role.title;
+        seniority = role.seniority;
+        department = role.dept;
+        const arch = inferred.companyArchetypes[saltedIndex % inferred.companyArchetypes.length] || 'Enterprises';
+        entityName = `${companyRoot.charAt(0).toUpperCase() + companyRoot.slice(1)} ${arch}`;
+        industry = filter.industry && filter.industry !== 'All' ? filter.industry : inferred.industry;
+      } else {
+        let matchedRoles = B2B_SENIORITIES;
+        if (painLower.includes('sales') || painLower.includes('pipeline') || painLower.includes('outbound') || painLower.includes('sdr') || painLower.includes('lead') || painLower.includes('pitch')) {
+          matchedRoles = B2B_SENIORITIES.filter(r => r.focus === 'sales' || r.focus === 'growth');
+        } else if (painLower.includes('deliverability') || painLower.includes('spam') || painLower.includes('domain') || painLower.includes('tech') || painLower.includes('api') || painLower.includes('security')) {
+          matchedRoles = B2B_SENIORITIES.filter(r => r.focus === 'tech');
+        } else if (painLower.includes('cac') || painLower.includes('ad') || painLower.includes('marketing') || painLower.includes('traffic') || painLower.includes('brand')) {
+          matchedRoles = B2B_SENIORITIES.filter(r => r.focus === 'marketing' || r.focus === 'growth');
+        } else if (painLower.includes('churn') || painLower.includes('onboarding') || painLower.includes('operation') || painLower.includes('procurement')) {
+          matchedRoles = B2B_SENIORITIES.filter(r => r.focus === 'operations' || r.focus === 'procurement');
+        }
+        if (matchedRoles.length === 0) matchedRoles = B2B_SENIORITIES;
 
-      const role = matchedRoles[saltedIndex % matchedRoles.length];
-      jobTitle = role.title;
-      seniority = role.seniority;
-      department = role.dept;
-      const bizSuffix = (rawWhatTheySell || 'Solutions').split(' ')[0].replace(/[^a-zA-Z]/g, '') || 'Enterprise';
-      entityName = `${companyRoot.charAt(0).toUpperCase() + companyRoot.slice(1)} ${bizSuffix} Inc`;
-      industry = filter.industry && filter.industry !== 'All' ? filter.industry : 'B2B Software & Commercial Enterprise';
+        const role = matchedRoles[saltedIndex % matchedRoles.length];
+        jobTitle = role.title;
+        seniority = role.seniority;
+        department = role.dept;
+        const bizSuffix = (rawWhatTheySell || 'Solutions').split(' ')[0].replace(/[^a-zA-Z]/g, '') || 'Enterprise';
+        entityName = `${companyRoot.charAt(0).toUpperCase() + companyRoot.slice(1)} ${bizSuffix} Inc`;
+        industry = filter.industry && filter.industry !== 'All' ? filter.industry : 'B2B Software & Commercial Enterprise';
+      }
     }
 
     const { email, domain, providerType } = generateDomainAndEmail(
@@ -876,7 +889,8 @@ export async function scoutGlobalHighVolumeLeads(filter: GlobalScoutFilter): Pro
       painPoint: rawPainPoint,
       targetAudience: rawTargetAudience,
       whatTheySell: rawWhatTheySell,
-      solutionFitReason: `Identified active pain signal: "${rawPainPoint}" within target audience "${rawTargetAudience}"`,
+      userGoal: filter.userGoal || inferred.userGoal,
+      solutionFitReason: inferred.solutionFitReason || `Identified active pain signal: "${rawPainPoint}" within target audience "${rawTargetAudience}"`,
       schoolOrUniversity,
       courseOrDegree,
       cryptoNiche,

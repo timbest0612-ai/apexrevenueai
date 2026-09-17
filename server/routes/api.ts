@@ -692,17 +692,39 @@ apiRouter.post('/ai/audit-copy', async (req: Request, res: Response) => {
   }
 });
 
-// 4. Global High-Volume Scouting & Mass Pitch Dispatcher (2,000 to 5,000+ at once)
+// 4. Global High-Volume Scouting & Mass Pitch Dispatcher (Flexible volume: 50 to 100,000+ without forced 2000 benchmark)
 apiRouter.post('/leads/global-scout', async (req: Request, res: Response) => {
   try {
-    const { whatTheySell, industry, targetRegion, leadVolume, minIntentScore, seniority } = req.body;
+    const { 
+      userGoal, 
+      whatTheySell, 
+      painPoint, 
+      targetAudience, 
+      industry, 
+      targetRegion, 
+      targetCategory, 
+      domainProvider, 
+      leadVolume, 
+      minIntentScore, 
+      seniority,
+      sampleLimit
+    } = req.body;
+
+    const requestedVolume = Number(leadVolume) || Number(sampleLimit) || 500;
+
     const scoutResults = await scoutGlobalHighVolumeLeads({
+      userGoal,
       whatTheySell: whatTheySell || 'B2B CRM & Marketing Automation',
-      industry: industry || 'Technology & Commercial Services',
+      painPoint,
+      targetAudience,
+      industry: industry || 'Commercial Enterprise',
       targetRegion: targetRegion || 'GLOBAL',
-      leadVolume: Number(leadVolume) || 2000,
+      targetCategory: targetCategory || 'BUSINESS_B2B',
+      domainProvider: domainProvider || 'ALL_DOMAINS',
+      leadVolume: requestedVolume,
       minIntentScore: Number(minIntentScore) || 80,
-      seniority: seniority || 'Executive'
+      seniority: seniority || 'Executive',
+      sampleLimit: sampleLimit ? Number(sampleLimit) : undefined
     });
 
     res.json({
@@ -742,11 +764,15 @@ apiRouter.post('/campaigns/mass-dispatch', (req: Request, res: Response) => {
       return res.status(400).json({ success: false, error: 'Pitch body message is required' });
     }
 
+    const recipientCount = Number(totalRecipients) > 0 
+      ? Number(totalRecipients) 
+      : (Array.isArray(sampleLogs) && sampleLogs.length > 0 ? sampleLogs.length : 100);
+
     const job = db.createMassDispatchJob({
       campaignName: campaignName || `Global Outreach to ${whatTheySell || 'Clients'}`,
       targetOffer: targetOffer || 'Enterprise Growth & Revenue Automation',
       whatTheySell: whatTheySell || 'Commercial Solutions',
-      totalRecipients: Number(totalRecipients) || 2000,
+      totalRecipients: recipientCount,
       channel: channel || 'email',
       dispatchSpeed: dispatchSpeed || 'INSTANT_TURBO',
       subject: subject || `Quick question regarding {{company}}'s customer acquisition`,
