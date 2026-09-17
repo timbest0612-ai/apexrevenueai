@@ -208,6 +208,7 @@ export interface LeadDiscoveryFilter {
   painPoint?: string;
   targetAudience?: string;
   whatTheySell?: string;
+  userGoal?: string;
   provider?: 'auto' | 'apollo' | 'hunter' | 'tomba' | 'global_registry';
 }
 
@@ -229,6 +230,7 @@ export interface DiscoveredLead {
   painPoint?: string;
   targetAudience?: string;
   whatTheySell?: string;
+  userGoal?: string;
   solutionFitReason?: string;
   schoolOrUniversity?: string;
   courseOrDegree?: string;
@@ -538,6 +540,7 @@ export type GlobalRegion =
   | 'MIDDLE_EAST';
 
 export interface GlobalScoutFilter {
+  userGoal?: string; // e.g. "I want to generate content for my business", "I want to sell web development", "I want to get coaching clients"
   whatTheySell: string; // e.g. "E-commerce fashion", "B2B SaaS CRM", "Digital Marketing Retainers", "Commercial Real Estate"
   painPoint?: string; // e.g. "Losing 30% pipeline to manual followups", "High customer acquisition cost"
   targetAudience?: string; // e.g. "Mid-market B2B SaaS", "Shopify brands", "Clinic owners"
