@@ -230,18 +230,24 @@ apiRouter.post('/leads/export-csv', (req: Request, res: Response) => {
     const { leads, volumeCount } = req.body;
     
     // Header
-    let csv = 'Full Name,First Name,Last Name,Email,Phone,Target Category,Job Title / Status,Seniority,Entity / School / Brand,Domain,Domain Provider,Department,Course / Degree / Tech,Industry,Country,City,Intent Score,Fit Score,Verification Status,Social / Telegram\n';
+    let csv = 'Full Name,First Name,Last Name,Email,Phone,Social Platform,Social Handle,Social Profile URL,Detected Pain Point,Pain Severity,Product Match Reason,Target Category,Job Title / Status,Seniority,Entity / School / Brand,Domain,Domain Provider,Department,Course / Degree / Tech,Industry,Country,City,Intent Score,Fit Score,Verification Status\n';
     
     if (Array.isArray(leads) && leads.length > 0) {
       for (const l of leads) {
-        const entity = l.schoolOrUniversity || l.companyName || '';
-        const deptOrRole = l.department || l.seniority || '';
-        const courseOrTech = l.courseOrDegree || (l.techStack ? l.techStack.join('; ') : '') || l.cryptoNiche || l.brandNiche || '';
-        const social = l.telegramHandle || l.twitterUrl || l.linkedinUrl || '';
-        csv += `"${l.fullName || ''}","${l.firstName || ''}","${l.lastName || ''}","${l.email || ''}","${l.phone || ''}","${l.targetCategory || 'BUSINESS_B2B'}","${l.jobTitle || ''}","${l.seniority || ''}","${entity}","${l.companyDomain || ''}","${l.domainProviderType || 'CUSTOM'}","${deptOrRole}","${courseOrTech}","${l.industry || ''}","${l.country || ''}","${l.city || ''}",${l.buyingIntentScore || 85},${l.leadFitScore || 90},"${l.verificationStatus || 'VALID'}","${social}"\n`;
+        const entity = (l.schoolOrUniversity || l.companyName || '').replace(/"/g, '""');
+        const deptOrRole = (l.department || l.seniority || '').replace(/"/g, '""');
+        const courseOrTech = (l.courseOrDegree || (l.techStack ? l.techStack.join('; ') : '') || l.cryptoNiche || l.brandNiche || '').replace(/"/g, '""');
+        const platform = (l.socialPlatform || 'LINKEDIN').toUpperCase();
+        const handle = (l.socialHandle || l.telegramHandle || '').replace(/"/g, '""');
+        const profileUrl = (l.socialProfileUrl || l.linkedinUrl || l.twitterUrl || '').replace(/"/g, '""');
+        const pain = (l.detectedPainExcerpt || l.painPoint || '').replace(/"/g, '""');
+        const severity = l.painSeverity || 'HIGH';
+        const matchReason = (l.productMatchReason || '').replace(/"/g, '""');
+
+        csv += `"${l.fullName || ''}","${l.firstName || ''}","${l.lastName || ''}","${l.email || ''}","${l.phone || ''}","${platform}","${handle}","${profileUrl}","${pain}","${severity}","${matchReason}","${l.targetCategory || 'BUSINESS_B2B'}","${l.jobTitle || ''}","${l.seniority || ''}","${entity}","${l.companyDomain || ''}","${l.domainProviderType || 'CUSTOM'}","${deptOrRole}","${courseOrTech}","${l.industry || ''}","${l.country || ''}","${l.city || ''}",${l.buyingIntentScore || 85},${l.leadFitScore || 90},"${l.verificationStatus || 'VALID'}"\n`;
       }
     } else {
-      csv += `"Alex Rivers","Alex","Rivers","alex@apexrevenue.ai","+1 415 800 9021","BUSINESS_B2B","Chief Revenue Officer","Executive","Apex Revenue","apexrevenue.ai","CORPORATE_CUSTOM","Revenue & Growth","CRM; Stripe; AI","SaaS","United States","San Francisco",95,98,"VALID",""\n`;
+      csv += `"Alex Rivers","Alex","Rivers","alex@apexrevenue.ai","+1 415 800 9021","LINKEDIN","@alexrivers","https://linkedin.com/in/alexrivers","Need predictable outbound","CRITICAL","Matches offer","BUSINESS_B2B","Chief Revenue Officer","Executive","Apex Revenue","apexrevenue.ai","CORPORATE_CUSTOM","Revenue & Growth","CRM; Stripe; AI","SaaS","United States","San Francisco",95,98,"VALID"\n`;
     }
 
     res.setHeader('Content-Type', 'text/csv');

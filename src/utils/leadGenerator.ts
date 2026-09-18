@@ -511,7 +511,7 @@ export async function downloadFullDatasetCSV(
   onProgress?: (progressPercent: number, generatedCount: number) => void
 ): Promise<void> {
   const chunkSize = 2500;
-  let csv = 'Full Name,First Name,Last Name,Email,Phone,Social Platform,Social Handle,Detected Pain Point & Excerpt,Pain Severity,Product Match Reason,Job Title,Entity / Company / School,Domain,Target Niche,City,Country,Intent Score,Fit Score,Verification Status\n';
+  let csv = 'Full Name,First Name,Last Name,Email,Phone,Social Platform,Social Handle,Social Profile URL,Detected Pain Point & Excerpt,Pain Severity,Product Match Reason,Job Title,Seniority,Entity / Company / School,Domain,Department,Tech Stack,Target Niche,City,Country,Intent Score,Fit Score,Verification Status\n';
 
   for (let offset = 0; offset < totalVolume; offset += chunkSize) {
     const currentBatchSize = Math.min(chunkSize, totalVolume - offset);
@@ -521,11 +521,15 @@ export async function downloadFullDatasetCSV(
       const entity = (l.schoolOrUniversity || l.companyName || '').replace(/"/g, '""');
       const platform = (l.socialPlatform || 'LinkedIn').toUpperCase();
       const handle = (l.socialHandle || '').replace(/"/g, '""');
+      const profileUrl = (l.socialProfileUrl || l.linkedinUrl || l.twitterUrl || '').replace(/"/g, '""');
       const painExcerpt = `"${(l.detectedPainExcerpt || l.painPoint || '').replace(/"/g, '""')}"`;
       const severity = l.painSeverity || 'HIGH';
       const matchReason = (l.productMatchReason || '').replace(/"/g, '""');
-      const niche = (l.targetNiche || l.industry || '').replace(/"/g, '""');
       const role = (l.jobTitle || '').replace(/"/g, '""');
+      const seniority = (l.seniority || 'Decision Maker').replace(/"/g, '""');
+      const dept = (l.department || 'Operations').replace(/"/g, '""');
+      const tech = (l.techStack ? l.techStack.join('; ') : l.courseOrDegree || l.cryptoNiche || '').replace(/"/g, '""');
+      const niche = (l.targetNiche || l.industry || '').replace(/"/g, '""');
       const fullName = (l.fullName || '').replace(/"/g, '""');
       const firstName = (l.firstName || '').replace(/"/g, '""');
       const lastName = (l.lastName || '').replace(/"/g, '""');
@@ -538,7 +542,7 @@ export async function downloadFullDatasetCSV(
       const fit = l.leadFitScore || 94;
       const status = l.verificationStatus || 'VALID';
 
-      csv += `"${fullName}","${firstName}","${lastName}","${email}","${phone}","${platform}","${handle}",${painExcerpt},"${severity}","${matchReason}","${role}","${entity}","${domain}","${niche}","${city}","${country}",${intent},${fit},"${status}"\n`;
+      csv += `"${fullName}","${firstName}","${lastName}","${email}","${phone}","${platform}","${handle}","${profileUrl}",${painExcerpt},"${severity}","${matchReason}","${role}","${seniority}","${entity}","${domain}","${dept}","${tech}","${niche}","${city}","${country}",${intent},${fit},"${status}"\n`;
     }
 
     if (onProgress) {
