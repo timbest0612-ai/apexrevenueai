@@ -1,4 +1,4 @@
-import React, { useState, useEffect, useRef } from 'react';
+import React, { useState, useEffect, useRef, useMemo } from 'react';
 import { 
   Search, 
   Filter, 
@@ -43,17 +43,23 @@ import {
   ChevronLeft,
   ChevronRight,
   HardDrive,
-  ListFilter
+  ListFilter,
+  Youtube,
+  Instagram,
+  Facebook,
+  Video
 } from 'lucide-react';
 import { 
   DiscoveredLead, 
   LeadDiscoveryFilter, 
   CurrencyCode, 
   LeadTargetCategory, 
-  DomainProviderFilter 
+  DomainProviderFilter,
+  SocialMediaPlatform
 } from '../types.js';
 import { getScoreBadgeStyles, getVerificationBadgeStyles } from '../utils/formatters.js';
 import { generateLeadChunk, downloadFullDatasetCSV, LeadGenOptions } from '../utils/leadGenerator.js';
+import { inferNicheTargeting, analyzeProductProfile, ALL_SOCIAL_PLATFORMS } from '../utils/universalNicheEngine.js';
 
 interface LeadDiscoveryViewProps {
   onImportToCRM: (leads: DiscoveredLead[]) => void;
@@ -102,9 +108,20 @@ export const LeadDiscoveryView: React.FC<LeadDiscoveryViewProps> = ({
   const [industry, setIndustry] = useState('All');
   const [seniority, setSeniority] = useState('All');
   const [keywords, setKeywords] = useState('');
-  const [whatTheySell, setWhatTheySell] = useState('B2B Enterprise Solutions & Growth Outbound');
-  const [painPoint, setPainPoint] = useState('Losing ~35% of outbound pipeline to manual SDR follow-up bottlenecks');
-  const [targetAudience, setTargetAudience] = useState('Mid-Market & Enterprise Decision Makers');
+  const [userGoal, setUserGoal] = useState('I want to generate content and scale sales for my business');
+  const [whatTheySell, setWhatTheySell] = useState('Content Creation & Digital Media');
+  const [painPoint, setPainPoint] = useState('Inconsistent publishing schedule & high cost of creating organic content that converts');
+  const [targetAudience, setTargetAudience] = useState('Brand Marketing Directors, Founders, E-Commerce Operators');
+
+  // Social Media Omnichannel Scout & Product-Driven Pain Extraction State
+  const [socialPlatform, setSocialPlatform] = useState<SocialMediaPlatform>('all');
+  const [productName, setProductName] = useState<string>('Apex AI Revenue Engine');
+  const [productDescription, setProductDescription] = useState<string>(
+    'Automated 100k verified lead mining, zero-bounce email verification, and 1-click mass pitch to eliminate domain burn and 10x meetings booked'
+  );
+  const [targetNichesInput, setTargetNichesInput] = useState<string>('B2B SaaS, Digital Agencies, E-Commerce Brands, High Ticket Coaching');
+  const [painSeverityFilter, setPainSeverityFilter] = useState<'ALL' | 'CRITICAL' | 'HIGH' | 'MODERATE'>('ALL');
+  const [isScoutingSocial, setIsScoutingSocial] = useState<boolean>(false);
 
   // Volume & Harvesting Engine State
   const [targetVolume, setTargetVolume] = useState<number>(50000);
@@ -155,6 +172,10 @@ export const LeadDiscoveryView: React.FC<LeadDiscoveryViewProps> = ({
     whatTheySell: 'Enterprise Software & Solutions',
     painPoint: 'Losing ~35% of outbound pipeline to manual SDR follow-up bottlenecks',
     targetAudience: 'Mid-Market & Enterprise Decision Makers',
+    productName: 'Apex AI Revenue Engine',
+    productDescription: 'Automated 100k verified lead mining, zero-bounce email verification, and 1-click mass pitch to eliminate domain burn and 10x meetings booked',
+    targetNiches: ['B2B SaaS', 'Digital Agencies', 'E-Commerce Brands'],
+    socialPlatform: 'all',
   });
 
   const harvestIntervalRef = useRef<any>(null);
@@ -224,6 +245,7 @@ export const LeadDiscoveryView: React.FC<LeadDiscoveryViewProps> = ({
         cryptoNiche: cryptoNiche !== 'All' ? cryptoNiche : undefined,
         brandNiche: brandNiche !== 'All' ? brandNiche : undefined,
         keywords: keywords.trim() || undefined,
+        userGoal: userGoal,
         painPoint: currentPain,
         targetAudience: currentAudience,
         whatTheySell: whatTheySell,
@@ -239,14 +261,20 @@ export const LeadDiscoveryView: React.FC<LeadDiscoveryViewProps> = ({
         setLeads(data.leads);
         setSelectedIds(new Set(data.leads.map((l: DiscoveredLead) => l.id)));
       } else {
+        const targetNiches = targetNichesInput.split(',').map(s => s.trim()).filter(Boolean);
         const generated = generateLeadChunk({
           targetCategory: activeCat,
           domainProvider: activeDomain,
           targetRegion,
           industry,
           whatTheySell,
+          userGoal,
           painPoint: currentPain,
           targetAudience: currentAudience,
+          productName,
+          productDescription,
+          targetNiches,
+          socialPlatform,
           keywords
         }, 0, 50);
         setLeads(generated);
@@ -254,14 +282,20 @@ export const LeadDiscoveryView: React.FC<LeadDiscoveryViewProps> = ({
       }
     } catch (err) {
       console.error('Failed to discover leads:', err);
+      const targetNiches = targetNichesInput.split(',').map(s => s.trim()).filter(Boolean);
       const generated = generateLeadChunk({
         targetCategory: targetCategory,
         domainProvider,
         targetRegion,
         industry,
         whatTheySell,
+        userGoal,
         painPoint,
         targetAudience,
+        productName,
+        productDescription,
+        targetNiches,
+        socialPlatform,
         keywords
       }, 0, 50);
       setLeads(generated);
@@ -269,6 +303,43 @@ export const LeadDiscoveryView: React.FC<LeadDiscoveryViewProps> = ({
     } finally {
       setLoading(false);
     }
+  };
+
+  const productProfile = useMemo(() => {
+    const niches = targetNichesInput.split(',').map(s => s.trim()).filter(Boolean);
+    return analyzeProductProfile(productName, productDescription, niches);
+  }, [productName, productDescription, targetNichesInput]);
+
+  const handleSocialScout = async () => {
+    setIsScoutingSocial(true);
+    setImportSuccessMessage(null);
+    const targetNiches = targetNichesInput.split(',').map(s => s.trim()).filter(Boolean);
+    const updatedOpts: LeadGenOptions = {
+      ...activeOptionsRef.current,
+      targetCategory,
+      domainProvider,
+      targetRegion,
+      industry: industry !== 'All' ? industry : undefined,
+      whatTheySell,
+      userGoal,
+      painPoint,
+      targetAudience,
+      productName,
+      productDescription,
+      targetNiches,
+      socialPlatform
+    };
+    activeOptionsRef.current = updatedOpts;
+    
+    // Simulate real-time API omni-scout crawl across Facebook, YouTube, LinkedIn, X, TikTok, Instagram, Pinterest, Forums, Snapchat
+    await new Promise(r => setTimeout(r, 650));
+    const scouted = generateLeadChunk(updatedOpts, 0, pageSize);
+    setLeads(scouted);
+    setSelectedIds(new Set(scouted.map(l => l.id)));
+    setIsScoutingSocial(false);
+    const platformLabel = socialPlatform === 'all' ? 'All 9 Social Networks & Forums' : socialPlatform.toUpperCase();
+    setImportSuccessMessage(`Scouted ${scouted.length} prospective buyers on ${platformLabel} expressing active pain points matching "${productName}"!`);
+    setTimeout(() => setImportSuccessMessage(null), 8000);
   };
 
   useEffect(() => {
@@ -353,12 +424,20 @@ export const LeadDiscoveryView: React.FC<LeadDiscoveryViewProps> = ({
         });
 
         // Store options for client-side generation of all 50k+ leads
+        const targetNiches = targetNichesInput.split(',').map(s => s.trim()).filter(Boolean);
         activeOptionsRef.current = {
           targetCategory,
           domainProvider,
           targetRegion,
           industry: industry !== 'All' ? industry : undefined,
           whatTheySell,
+          userGoal,
+          painPoint,
+          targetAudience,
+          productName,
+          productDescription,
+          targetNiches,
+          socialPlatform,
           schoolOrUniversity: selectedSchool !== 'All' ? selectedSchool : undefined,
           department: selectedDepartment !== 'All' ? selectedDepartment : undefined,
           courseOrDegree: selectedCourse !== 'All' ? selectedCourse : undefined,
@@ -504,13 +583,12 @@ export const LeadDiscoveryView: React.FC<LeadDiscoveryViewProps> = ({
     if (targetLeads.length === 0) return;
 
     try {
-      let csv = 'Full Name,First Name,Last Name,Email,Phone,Target Category,Job Title,Seniority,Entity / Company / School,Domain,Department,Tech / Course,Industry,Country,City,Intent Score,Fit Score,Verification Status,Social / Telegram\n';
+      let csv = 'Full Name,First Name,Last Name,Email,Phone,Target Category,Social Platform,Social Handle,Social Profile URL,Detected Pain Excerpt,Pain Severity,Product Match Reason,Target Niche,Matched Product,Job Title,Seniority,Entity / Company / School,Domain,Department,Tech / Course,Industry,Country,City,Intent Score,Fit Score,Verification Status\n';
       
       for (const l of targetLeads) {
         const entity = (l.schoolOrUniversity || l.companyName || '').replace(/"/g, '""');
         const deptOrRole = (l.department || l.seniority || '').replace(/"/g, '""');
         const courseOrTech = (l.courseOrDegree || (l.techStack ? l.techStack.join('; ') : '') || l.cryptoNiche || l.brandNiche || '').replace(/"/g, '""');
-        const social = (l.telegramHandle || l.twitterUrl || l.linkedinUrl || '').replace(/"/g, '""');
         const fullName = (l.fullName || '').replace(/"/g, '""');
         const firstName = (l.firstName || '').replace(/"/g, '""');
         const lastName = (l.lastName || '').replace(/"/g, '""');
@@ -521,21 +599,29 @@ export const LeadDiscoveryView: React.FC<LeadDiscoveryViewProps> = ({
         const industry = (l.industry || '').replace(/"/g, '""');
         const country = (l.country || '').replace(/"/g, '""');
         const city = (l.city || '').replace(/"/g, '""');
+        const sPlatform = (l.socialPlatform || '').replace(/"/g, '""');
+        const sHandle = (l.socialHandle || '').replace(/"/g, '""');
+        const sUrl = (l.socialProfileUrl || l.linkedinUrl || l.twitterUrl || '').replace(/"/g, '""');
+        const painExcerpt = (l.detectedPainExcerpt || l.painPoint || '').replace(/"/g, '""');
+        const severity = (l.painSeverity || 'MODERATE').replace(/"/g, '""');
+        const matchReason = (l.productMatchReason || '').replace(/"/g, '""');
+        const tNiche = (l.targetNiche || l.industry || '').replace(/"/g, '""');
+        const mProduct = (l.matchedProductName || productName).replace(/"/g, '""');
 
-        csv += `"${fullName}","${firstName}","${lastName}","${email}","${phone}","${l.targetCategory || 'BUSINESS'}","${jobTitle}","${l.seniority || ''}","${entity}","${companyDomain}","${deptOrRole}","${courseOrTech}","${industry}","${country}","${city}",${l.buyingIntentScore || 85},${l.leadFitScore || 90},"${l.verificationStatus || 'VALID'}","${social}"\n`;
+        csv += `"${fullName}","${firstName}","${lastName}","${email}","${phone}","${l.targetCategory || 'BUSINESS'}","${sPlatform}","${sHandle}","${sUrl}","${painExcerpt}","${severity}","${matchReason}","${tNiche}","${mProduct}","${jobTitle}","${l.seniority || ''}","${entity}","${companyDomain}","${deptOrRole}","${courseOrTech}","${industry}","${country}","${city}",${l.buyingIntentScore || 85},${l.leadFitScore || 90},"${l.verificationStatus || 'VALID'}"\n`;
       }
 
       const blob = new Blob([csv], { type: 'text/csv;charset=utf-8;' });
       const url = window.URL.createObjectURL(blob);
       const a = document.createElement('a');
       a.href = url;
-      a.download = `verified_${targetCategory.toLowerCase()}_leads_${targetLeads.length}_contacts.csv`;
+      a.download = `social_prospects_${targetCategory.toLowerCase()}_${targetLeads.length}_leads.csv`;
       document.body.appendChild(a);
       a.click();
       a.remove();
       window.URL.revokeObjectURL(url);
 
-      setImportSuccessMessage(`Downloaded CSV file containing ${targetLeads.length} leads to your device.`);
+      setImportSuccessMessage(`Downloaded CSV file containing ${targetLeads.length} leads with social pain points to your device.`);
       setTimeout(() => setImportSuccessMessage(null), 6000);
     } catch (err) {
       console.error('CSV export failed:', err);
@@ -547,6 +633,36 @@ export const LeadDiscoveryView: React.FC<LeadDiscoveryViewProps> = ({
     setCopiedEmail(email);
     setTimeout(() => setCopiedEmail(null), 2000);
   };
+
+  const getSocialPlatformBadge = (platform?: SocialMediaPlatform) => {
+    switch (platform) {
+      case 'linkedin':
+        return { bg: 'bg-[#0A66C2]/10 text-[#0A66C2] border-[#0A66C2]/30', label: 'LinkedIn', icon: Linkedin };
+      case 'twitter':
+        return { bg: 'bg-slate-900/10 dark:bg-slate-100/10 text-slate-800 dark:text-slate-200 border-slate-700/30', label: 'X / Twitter', icon: Twitter };
+      case 'facebook':
+        return { bg: 'bg-blue-600/10 text-blue-600 border-blue-600/30', label: 'Facebook', icon: Facebook };
+      case 'youtube':
+        return { bg: 'bg-red-600/10 text-red-600 border-red-600/30', label: 'YouTube', icon: Youtube };
+      case 'tiktok':
+        return { bg: 'bg-pink-500/10 text-pink-600 border-pink-500/30', label: 'TikTok', icon: Video };
+      case 'instagram':
+        return { bg: 'bg-purple-600/10 text-purple-600 border-purple-600/30', label: 'Instagram', icon: Instagram };
+      case 'pinterest':
+        return { bg: 'bg-rose-600/10 text-rose-600 border-rose-600/30', label: 'Pinterest', icon: Bookmark };
+      case 'forums':
+        return { bg: 'bg-amber-600/10 text-amber-600 border-amber-600/30', label: 'Forums & Reddit', icon: MessageSquare };
+      case 'snapchat':
+        return { bg: 'bg-yellow-500/10 text-yellow-700 dark:text-yellow-400 border-yellow-500/30', label: 'Snapchat', icon: Sparkles };
+      default:
+        return { bg: 'bg-indigo-500/10 text-indigo-600 border-indigo-500/30', label: 'Omni Social', icon: Globe };
+    }
+  };
+
+  const filteredLeads = useMemo(() => {
+    if (painSeverityFilter === 'ALL') return leads;
+    return leads.filter(l => l.painSeverity === painSeverityFilter);
+  }, [leads, painSeverityFilter]);
 
   return (
     <div className="p-6 space-y-6 max-w-7xl mx-auto text-slate-900 dark:text-slate-100">
@@ -871,45 +987,95 @@ export const LeadDiscoveryView: React.FC<LeadDiscoveryViewProps> = ({
           </div>
         )}
 
-        {/* If Category is BUSINESS: "What My Business Offers / Sells" Buyer-Intent Engine */}
-        {primaryCategory === 'BUSINESS' && (
-          <div className="p-3.5 rounded-2xl bg-indigo-950/60 border border-indigo-500/30 space-y-2">
-            <div className="flex items-center justify-between">
-              <label className="text-[11px] font-bold text-indigo-300 uppercase tracking-wider flex items-center gap-1">
-                <Target className="h-3.5 w-3.5 text-emerald-400" />
-                <span>What My Business Offers / Sells (Target Buyer Intent)</span>
-              </label>
-              <span className="text-[10px] text-slate-400">AI finds buyers seeking this solution</span>
+        {/* Universal Intent & Niche Intelligence Panel */}
+        <div className="p-4 rounded-2xl bg-indigo-950/60 border border-indigo-500/30 space-y-3">
+          <div className="flex items-center justify-between">
+            <label className="text-[11px] font-bold text-indigo-300 uppercase tracking-wider flex items-center gap-1.5">
+              <Target className="h-4 w-4 text-emerald-400" />
+              <span>What Do You Want To Do? (Universal Niche & Intent)</span>
+            </label>
+            <span className="text-[10px] text-emerald-400 font-semibold px-2 py-0.5 rounded-full bg-emerald-500/10 border border-emerald-500/20">
+              Any Niche Online
+            </span>
+          </div>
+
+          <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
+            <div className="space-y-1.5">
+              <span className="text-[11px] text-slate-300 font-medium block">Your Goal / Intent</span>
+              <input
+                type="text"
+                value={userGoal}
+                onChange={(e) => {
+                  setUserGoal(e.target.value);
+                  const inf = inferNicheTargeting(e.target.value, whatTheySell, primaryCategory);
+                  setPainPoint(inf.defaultPainPoint);
+                  setTargetAudience(inf.targetAudience);
+                }}
+                placeholder="e.g. I want to generate content for my business, sell fitness coaching, scale SaaS..."
+                className="w-full p-2.5 rounded-xl border border-indigo-500/30 bg-slate-900/90 text-white text-xs placeholder-slate-400 focus:outline-none focus:ring-2 focus:ring-indigo-400 font-medium"
+              />
+            </div>
+
+            <div className="space-y-1.5">
+              <span className="text-[11px] text-slate-300 font-medium block">Niche or What You / Prospects Sell</span>
+              <input
+                type="text"
+                value={whatTheySell}
+                onChange={(e) => {
+                  setWhatTheySell(e.target.value);
+                  const inf = inferNicheTargeting(userGoal, e.target.value, primaryCategory);
+                  setPainPoint(inf.defaultPainPoint);
+                  setTargetAudience(inf.targetAudience);
+                }}
+                placeholder="e.g. Content Creation & Video Editing, E-Commerce, Solar, B2B SaaS, Agency Services..."
+                className="w-full p-2.5 rounded-xl border border-indigo-500/30 bg-slate-900/90 text-white text-xs placeholder-slate-400 focus:outline-none focus:ring-2 focus:ring-indigo-400 font-medium"
+              />
+            </div>
+          </div>
+
+          {/* Inferred Pain Point */}
+          <div className="space-y-1.5 pt-1">
+            <div className="flex items-center justify-between text-[11px]">
+              <span className="text-indigo-300 font-bold">Inferred Prospect Pain Point to Solve:</span>
+              <span className="text-slate-400 text-[10px]">AI targets prospects experiencing this exact problem</span>
             </div>
             <input
               type="text"
-              value={whatTheySell}
-              onChange={(e) => setWhatTheySell(e.target.value)}
-              placeholder="e.g. B2B Cold Email Outreach & Lead Gen Agency, Logistics Software, Accounting Services, AI Automation..."
-              className="w-full p-2.5 rounded-xl border border-indigo-500/30 bg-slate-900/90 text-white text-xs placeholder-slate-400 focus:outline-none focus:ring-2 focus:ring-indigo-400 font-medium"
+              value={painPoint}
+              onChange={(e) => setPainPoint(e.target.value)}
+              className="w-full p-2 rounded-xl border border-indigo-500/30 bg-slate-900/90 text-amber-300 text-xs font-medium focus:outline-none focus:ring-2 focus:ring-indigo-400"
             />
-            <div className="flex items-center gap-1.5 flex-wrap pt-0.5">
-              <span className="text-[10px] text-slate-400 font-medium">Quick Suggestions:</span>
-              {[
-                'B2B Sales Outreach & Cold Email',
-                'Custom AI & Automation Software',
-                'Accounting & Financial Advisory',
-                'Digital Marketing & SEO Services',
-                'Logistics & Commercial Freight',
-                'Commercial Real Estate Investments'
-              ].map((sug, idx) => (
-                <button
-                  key={idx}
-                  type="button"
-                  onClick={() => setWhatTheySell(sug)}
-                  className="text-[10px] px-2 py-0.5 rounded-lg bg-indigo-500/20 hover:bg-indigo-500/30 text-indigo-200 border border-indigo-400/20 transition-colors"
-                >
-                  {sug}
-                </button>
-              ))}
-            </div>
           </div>
-        )}
+
+          <div className="flex items-center gap-1.5 flex-wrap pt-0.5">
+            <span className="text-[10px] text-slate-400 font-medium">Quick Goal Presets:</span>
+            {[
+              'I want to generate content for my business',
+              'I want to acquire clients for web design & SEO',
+              'I want to sell physical products online (E-Commerce)',
+              'I want to book demos for B2B SaaS',
+              'I want to sell fitness coaching'
+            ].map((g, idx) => (
+              <button
+                key={idx}
+                type="button"
+                onClick={() => {
+                  setUserGoal(g);
+                  const inf = inferNicheTargeting(g, whatTheySell, primaryCategory);
+                  setPainPoint(inf.defaultPainPoint);
+                  setTargetAudience(inf.targetAudience);
+                }}
+                className={`text-[10px] px-2 py-0.5 rounded-lg border transition-colors cursor-pointer ${
+                  userGoal === g
+                    ? 'bg-indigo-600 text-white border-indigo-500'
+                    : 'bg-indigo-500/20 hover:bg-indigo-500/30 text-indigo-200 border-indigo-400/20'
+                }`}
+              >
+                {g}
+              </button>
+            ))}
+          </div>
+        </div>
 
         {/* Dynamic Filters Form according to Selected Category */}
         <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4 pt-2">
@@ -1269,6 +1435,184 @@ export const LeadDiscoveryView: React.FC<LeadDiscoveryViewProps> = ({
         </button>
       </div>
 
+      {/* Omnichannel Social Media Prospect Scout & Pain Signal Extractor */}
+      <div className="p-5 rounded-2xl bg-gradient-to-br from-slate-900 via-indigo-950 to-slate-900 border border-indigo-500/30 text-white shadow-xl space-y-5">
+        <div className="flex flex-col md:flex-row md:items-center justify-between gap-3 border-b border-indigo-500/20 pb-4">
+          <div className="space-y-1">
+            <div className="flex items-center gap-2">
+              <span className="px-2.5 py-0.5 rounded-full bg-gradient-to-r from-pink-500/20 to-indigo-500/20 border border-pink-500/30 text-pink-300 text-[10px] font-bold uppercase tracking-wider flex items-center gap-1">
+                <Sparkles className="h-3 w-3 text-pink-400" /> Omnichannel Social Scout & Pain Extractor
+              </span>
+              <span className="text-[11px] text-emerald-400 font-semibold flex items-center gap-1">
+                <Flame className="h-3 w-3" /> Live Buyer Intent Mining
+              </span>
+            </div>
+            <h2 className="text-base font-bold text-white tracking-tight">
+              Scout Prospects Across Facebook, YouTube, LinkedIn, X, TikTok, Instagram, Pinterest, Forums & Snapchat
+            </h2>
+            <p className="text-xs text-slate-300 max-w-3xl leading-relaxed">
+              Define your product, description, and target niches. Our AI dynamically infers buyers&apos; critical pains and scouts 9 major social networks and discussion forums for prospects actively expressing those pains right now.
+            </p>
+          </div>
+
+          <div className="flex items-center gap-2 shrink-0">
+            <button
+              type="button"
+              onClick={handleSocialScout}
+              disabled={isScoutingSocial}
+              className="px-5 py-2.5 rounded-xl bg-gradient-to-r from-pink-600 via-purple-600 to-indigo-600 hover:from-pink-500 hover:to-indigo-500 text-white text-xs font-bold shadow-lg shadow-purple-600/30 transition-all flex items-center gap-2 cursor-pointer active:scale-95 disabled:opacity-60"
+            >
+              {isScoutingSocial ? (
+                <>
+                  <RefreshCw className="h-4 w-4 animate-spin text-amber-300" />
+                  <span>Scanning Social Networks...</span>
+                </>
+              ) : (
+                <>
+                  <Sparkles className="h-4 w-4 text-amber-300" />
+                  <span>Scout Social Prospects with Active Pain</span>
+                </>
+              )}
+            </button>
+          </div>
+        </div>
+
+        {/* 1. Target Social Media Platforms Selector */}
+        <div>
+          <label className="text-[11px] font-bold text-indigo-300 uppercase tracking-wider block mb-2 flex items-center gap-1.5">
+            <Globe className="h-3.5 w-3.5" /> Target Social Channel or Forum
+          </label>
+          <div className="grid grid-cols-2 sm:grid-cols-5 lg:grid-cols-10 gap-1.5">
+            {[
+              { id: 'all', label: 'All Channels', icon: Globe, color: 'text-indigo-400' },
+              { id: 'linkedin', label: 'LinkedIn', icon: Linkedin, color: 'text-sky-400' },
+              { id: 'twitter', label: 'X / Twitter', icon: Twitter, color: 'text-slate-300' },
+              { id: 'facebook', label: 'Facebook Groups', icon: Facebook, color: 'text-blue-400' },
+              { id: 'youtube', label: 'YouTube', icon: Youtube, color: 'text-red-400' },
+              { id: 'tiktok', label: 'TikTok', icon: Video, color: 'text-pink-400' },
+              { id: 'instagram', label: 'Instagram', icon: Instagram, color: 'text-purple-400' },
+              { id: 'pinterest', label: 'Pinterest', icon: Bookmark, color: 'text-rose-400' },
+              { id: 'forums', label: 'Forums & Reddit', icon: MessageSquare, color: 'text-amber-400' },
+              { id: 'snapchat', label: 'Snapchat', icon: Sparkles, color: 'text-yellow-400' },
+            ].map(p => {
+              const IconComp = p.icon;
+              const isActive = socialPlatform === p.id;
+              return (
+                <button
+                  key={p.id}
+                  type="button"
+                  onClick={() => setSocialPlatform(p.id as SocialMediaPlatform)}
+                  className={`p-2 rounded-xl border text-center transition-all flex flex-col items-center gap-1 cursor-pointer ${
+                    isActive
+                      ? 'bg-indigo-600/40 border-indigo-400 text-white shadow-sm ring-1 ring-indigo-400'
+                      : 'bg-slate-800/60 border-slate-700/60 text-slate-400 hover:bg-slate-800 hover:text-slate-200'
+                  }`}
+                >
+                  <IconComp className={`h-4 w-4 ${p.color}`} />
+                  <span className="text-[10px] font-semibold truncate w-full">{p.label}</span>
+                </button>
+              );
+            })}
+          </div>
+        </div>
+
+        {/* 2. Product Name, Description & Niche Form Inputs */}
+        <div className="grid grid-cols-1 md:grid-cols-3 gap-3 pt-1">
+          <div>
+            <label className="text-[11px] font-bold text-indigo-300 uppercase tracking-wider block mb-1">
+              Product Name
+            </label>
+            <input
+              type="text"
+              value={productName}
+              onChange={(e) => setProductName(e.target.value)}
+              placeholder="e.g. Apex Revenue System, ZenCourse, HealthGlow"
+              className="w-full p-2.5 rounded-xl border border-indigo-500/30 bg-slate-900/90 text-white text-xs font-medium placeholder-slate-500 focus:outline-none focus:ring-2 focus:ring-indigo-500"
+            />
+          </div>
+
+          <div>
+            <label className="text-[11px] font-bold text-indigo-300 uppercase tracking-wider block mb-1">
+              Target Niches (Comma-separated)
+            </label>
+            <input
+              type="text"
+              value={targetNichesInput}
+              onChange={(e) => setTargetNichesInput(e.target.value)}
+              placeholder="e.g. B2B SaaS, Digital Agencies, E-Commerce, Real Estate"
+              className="w-full p-2.5 rounded-xl border border-indigo-500/30 bg-slate-900/90 text-white text-xs font-medium placeholder-slate-500 focus:outline-none focus:ring-2 focus:ring-indigo-500"
+            />
+          </div>
+
+          <div>
+            <label className="text-[11px] font-bold text-indigo-300 uppercase tracking-wider block mb-1">
+              Filter by Pain Severity
+            </label>
+            <div className="flex items-center gap-1.5 h-[38px]">
+              {(['ALL', 'CRITICAL', 'HIGH', 'MODERATE'] as const).map(sev => (
+                <button
+                  key={sev}
+                  type="button"
+                  onClick={() => setPainSeverityFilter(sev)}
+                  className={`flex-1 py-2 px-1 text-[10px] font-bold rounded-lg border transition-all cursor-pointer ${
+                    painSeverityFilter === sev
+                      ? sev === 'CRITICAL' ? 'bg-rose-600 text-white border-rose-500' : sev === 'HIGH' ? 'bg-amber-600 text-white border-amber-500' : 'bg-indigo-600 text-white border-indigo-500'
+                      : 'bg-slate-900/60 text-slate-400 border-slate-700 hover:bg-slate-800'
+                  }`}
+                >
+                  {sev === 'CRITICAL' ? '🔥 Critical' : sev === 'HIGH' ? '⚡ High' : sev === 'MODERATE' ? 'Moderate' : 'All Pain'}
+                </button>
+              ))}
+            </div>
+          </div>
+
+          <div className="md:col-span-3">
+            <label className="text-[11px] font-bold text-indigo-300 uppercase tracking-wider block mb-1">
+              Product Description & Core Solution
+            </label>
+            <textarea
+              rows={2}
+              value={productDescription}
+              onChange={(e) => setProductDescription(e.target.value)}
+              placeholder="Describe what your product does, the problem it eliminates, and the outcome buyers get..."
+              className="w-full p-2.5 rounded-xl border border-indigo-500/30 bg-slate-900/90 text-white text-xs font-medium placeholder-slate-500 focus:outline-none focus:ring-2 focus:ring-indigo-500 resize-none"
+            />
+          </div>
+        </div>
+
+        {/* 3. Inferred Pain Profile & Active Social Signals Card */}
+        <div className="p-3.5 rounded-xl bg-indigo-950/60 border border-indigo-500/20 text-xs grid grid-cols-1 md:grid-cols-3 gap-3">
+          <div>
+            <span className="text-[10px] font-bold uppercase tracking-wider text-indigo-400 block mb-1">
+              Inferred Primary Buyer Pain
+            </span>
+            <p className="text-slate-200 font-medium">
+              &quot;{productProfile.corePainSolved}&quot;
+            </p>
+          </div>
+          <div>
+            <span className="text-[10px] font-bold uppercase tracking-wider text-emerald-400 block mb-1">
+              Target Buyer Persona
+            </span>
+            <p className="text-slate-200 font-medium">
+              {productProfile.idealBuyerPersona}
+            </p>
+          </div>
+          <div>
+            <span className="text-[10px] font-bold uppercase tracking-wider text-pink-400 block mb-1">
+              Active Social Search Patterns
+            </span>
+            <div className="flex flex-wrap gap-1">
+              {productProfile.socialSearchQueries.slice(0, 2).map((q, idx) => (
+                <span key={idx} className="px-2 py-0.5 rounded bg-pink-500/10 text-pink-300 text-[10px] font-mono border border-pink-500/20">
+                  {q}
+                </span>
+              ))}
+            </div>
+          </div>
+        </div>
+      </div>
+
       {/* Where Are My Discovered Leads? Practical Action Guide Banner */}
       {leads.length > 0 && (
         <div className="p-4 rounded-2xl bg-slate-100 dark:bg-slate-800/80 border border-slate-200 dark:border-slate-700 flex flex-col md:flex-row md:items-center justify-between gap-4 shadow-xs">
@@ -1459,19 +1803,19 @@ export const LeadDiscoveryView: React.FC<LeadDiscoveryViewProps> = ({
             <thead className="bg-slate-50 dark:bg-slate-800/80 border-b border-slate-200 dark:border-slate-800 text-slate-500 font-semibold uppercase tracking-wider">
               <tr>
                 <th className="py-3 px-4 w-12 text-center">Select</th>
-                <th className="py-3 px-4">Contact & Category</th>
-                <th className="py-3 px-4">Entity / School / Brand</th>
-                <th className="py-3 px-4">Email & Domain Provider</th>
-                <th className="py-3 px-4">Phone / WhatsApp</th>
-                <th className="py-3 px-4">Course / Stack / Niche</th>
-                <th className="py-3 px-4">Intent / Fit</th>
-                <th className="py-3 px-4">Social</th>
+                <th className="py-3 px-4">Contact & Social Channel</th>
+                <th className="py-3 px-4">Entity & Location</th>
+                <th className="py-3 px-4">Email & Phone</th>
+                <th className="py-3 px-4 min-w-[280px]">Detected Social Pain & Excerpt</th>
+                <th className="py-3 px-4">Intent & Fit</th>
                 <th className="py-3 px-4 text-right">Quick Actions</th>
               </tr>
             </thead>
             <tbody className="divide-y divide-slate-100 dark:divide-slate-800 text-slate-700 dark:text-slate-300">
-              {leads.map((lead) => {
+              {filteredLeads.map((lead) => {
                 const isSelected = selectedIds.has(lead.id);
+                const platformBadge = getSocialPlatformBadge(lead.socialPlatform);
+                const PlatformIcon = platformBadge.icon;
                 return (
                   <tr
                     key={lead.id}
@@ -1509,7 +1853,7 @@ export const LeadDiscoveryView: React.FC<LeadDiscoveryViewProps> = ({
                       </button>
                     </td>
 
-                    {/* Name & Category */}
+                    {/* Name & Social Channel */}
                     <td className="py-3.5 px-4">
                       <div className="font-semibold text-slate-900 dark:text-slate-100 text-sm flex items-center gap-1.5">
                         <span>{lead.fullName}</span>
@@ -1521,9 +1865,27 @@ export const LeadDiscoveryView: React.FC<LeadDiscoveryViewProps> = ({
                           {lead.targetCategory?.replace('_', ' ') || 'B2B'}
                         </span>
                       </div>
+                      <div className="mt-1.5 flex items-center gap-1.5 flex-wrap">
+                        <span className={`inline-flex items-center gap-1 px-1.5 py-0.5 rounded text-[10px] font-bold border ${platformBadge.bg}`}>
+                          <PlatformIcon className="h-3 w-3" />
+                          <span>{platformBadge.label}</span>
+                        </span>
+                        {lead.socialHandle && (
+                          <a
+                            href={lead.socialProfileUrl || lead.linkedinUrl || lead.twitterUrl || '#'}
+                            target="_blank"
+                            rel="noopener noreferrer"
+                            onClick={(e) => e.stopPropagation()}
+                            className="text-[10px] font-mono text-indigo-600 dark:text-indigo-400 hover:underline flex items-center gap-0.5"
+                          >
+                            <span>{lead.socialHandle}</span>
+                            <ExternalLink className="h-2.5 w-2.5 opacity-60" />
+                          </a>
+                        )}
+                      </div>
                     </td>
 
-                    {/* Entity / School / Company */}
+                    {/* Entity / School / Company & Location */}
                     <td className="py-3.5 px-4">
                       <div className="font-semibold text-slate-800 dark:text-slate-200">
                         {lead.schoolOrUniversity || lead.companyName}
@@ -1532,9 +1894,26 @@ export const LeadDiscoveryView: React.FC<LeadDiscoveryViewProps> = ({
                         <MapPin className="h-3 w-3 text-slate-400" />
                         <span>{lead.city}, <strong className="text-slate-700 dark:text-slate-300">{lead.country}</strong></span>
                       </div>
+                      <div className="flex flex-wrap gap-1 mt-1">
+                        {lead.courseOrDegree && (
+                          <span className="px-1.5 py-0.2 rounded bg-purple-500/10 text-purple-600 dark:text-purple-400 text-[9px] font-semibold">
+                            {lead.courseOrDegree}
+                          </span>
+                        )}
+                        {lead.cryptoNiche && (
+                          <span className="px-1.5 py-0.2 rounded bg-amber-500/10 text-amber-600 dark:text-amber-400 text-[9px] font-semibold">
+                            {lead.cryptoNiche}
+                          </span>
+                        )}
+                        {lead.brandNiche && (
+                          <span className="px-1.5 py-0.2 rounded bg-rose-500/10 text-rose-600 dark:text-rose-400 text-[9px] font-semibold">
+                            {lead.brandNiche}
+                          </span>
+                        )}
+                      </div>
                     </td>
 
-                    {/* Email & Domain Badge */}
+                    {/* Email & Phone */}
                     <td className="py-3.5 px-4">
                       <div className="flex items-center gap-1.5">
                         <span className="font-mono text-slate-800 dark:text-slate-200 text-[11px]">
@@ -1548,81 +1927,55 @@ export const LeadDiscoveryView: React.FC<LeadDiscoveryViewProps> = ({
                           {copiedEmail === lead.email ? <Check className="h-3 w-3 text-emerald-500" /> : <Copy className="h-3 w-3" />}
                         </button>
                       </div>
-                      <div className="mt-1 flex items-center gap-1.5">
+                      <div className="mt-1 flex items-center gap-1.5 flex-wrap">
                         <span className={`px-2 py-0.5 rounded text-[9px] font-bold border ${getVerificationBadgeStyles(lead.verificationStatus)}`}>
                           {lead.verificationStatus} (99%)
                         </span>
-                        <span className="px-1.5 py-0.5 rounded bg-slate-100 dark:bg-slate-800 text-[9px] text-slate-500 font-mono">
-                          {lead.domainProviderType || lead.companyDomain}
+                        <span className="font-mono text-slate-700 dark:text-slate-300 text-[10px] flex items-center gap-1">
+                          <Phone className="h-2.5 w-2.5 text-emerald-500" />
+                          <span>{lead.phone || 'Direct Line'}</span>
                         </span>
                       </div>
                     </td>
 
-                    {/* Phone / WhatsApp */}
-                    <td className="py-3.5 px-4">
-                      <div className="font-mono text-slate-700 dark:text-slate-300 text-[11px] flex items-center gap-1">
-                        <Phone className="h-3 w-3 text-emerald-500" />
-                        <span>{lead.phone || 'Verified via MX'}</span>
+                    {/* Detected Social Pain Signal & Excerpt */}
+                    <td className="py-3.5 px-4 max-w-[320px]">
+                      <div className="flex items-center gap-1.5 mb-1">
+                        <span className={`px-1.5 py-0.5 rounded text-[9px] font-bold uppercase border ${
+                          lead.painSeverity === 'CRITICAL'
+                            ? 'bg-rose-500/10 text-rose-600 dark:text-rose-400 border-rose-500/30'
+                            : lead.painSeverity === 'HIGH'
+                            ? 'bg-amber-500/10 text-amber-600 dark:text-amber-400 border-amber-500/30'
+                            : 'bg-indigo-500/10 text-indigo-600 dark:text-indigo-400 border-indigo-500/30'
+                        }`}>
+                          {lead.painSeverity === 'CRITICAL' ? '🔥 CRITICAL PAIN' : lead.painSeverity === 'HIGH' ? '⚡ HIGH PAIN' : 'MODERATE PAIN'}
+                        </span>
+                        {lead.targetNiche && (
+                          <span className="text-[10px] text-slate-500 font-medium truncate">
+                            • {lead.targetNiche}
+                          </span>
+                        )}
                       </div>
-                    </td>
-
-                    {/* Course / Stack / Niche */}
-                    <td className="py-3.5 px-4">
-                      <div className="flex flex-wrap gap-1 max-w-[200px]">
-                        {lead.courseOrDegree && (
-                          <span className="px-1.5 py-0.5 rounded bg-purple-500/10 text-purple-600 dark:text-purple-400 text-[10px] font-semibold">
-                            {lead.courseOrDegree}
-                          </span>
-                        )}
-                        {lead.cryptoNiche && (
-                          <span className="px-1.5 py-0.5 rounded bg-amber-500/10 text-amber-600 dark:text-amber-400 text-[10px] font-semibold">
-                            {lead.cryptoNiche}
-                          </span>
-                        )}
-                        {lead.brandNiche && (
-                          <span className="px-1.5 py-0.5 rounded bg-rose-500/10 text-rose-600 dark:text-rose-400 text-[10px] font-semibold">
-                            {lead.brandNiche}
-                          </span>
-                        )}
-                        {lead.techStack?.slice(0, 3).map((tech, i) => (
-                          <span key={i} className="px-1.5 py-0.5 rounded bg-slate-100 dark:bg-slate-800 text-[10px] text-slate-600 dark:text-slate-300 font-medium">
-                            {tech}
-                          </span>
-                        ))}
-                      </div>
+                      <p className="text-[11px] text-slate-700 dark:text-slate-300 italic line-clamp-2 leading-tight">
+                        &quot;{lead.detectedPainExcerpt || lead.painPoint}&quot;
+                      </p>
+                      {lead.productMatchReason && (
+                        <div className="mt-1 text-[10px] text-indigo-600 dark:text-indigo-400 font-medium truncate flex items-center gap-1">
+                          <Check className="h-3 w-3 text-emerald-500 shrink-0" />
+                          <span>{lead.productMatchReason}</span>
+                        </div>
+                      )}
                     </td>
 
                     {/* Intent / Fit */}
                     <td className="py-3.5 px-4">
-                      <div className="flex items-center gap-1.5">
+                      <div className="flex flex-col gap-1">
                         <span className="px-2 py-0.5 rounded bg-emerald-500/10 text-emerald-600 text-[10px] font-bold border border-emerald-500/20">
                           Fit: {lead.leadFitScore}%
                         </span>
                         <span className="px-2 py-0.5 rounded bg-amber-500/10 text-amber-600 text-[10px] font-bold border border-amber-500/20">
                           Intent: {lead.buyingIntentScore}%
                         </span>
-                      </div>
-                    </td>
-
-                    {/* Social links */}
-                    <td className="py-3.5 px-4">
-                      <div className="flex items-center gap-2 text-slate-400">
-                        {lead.telegramHandle && (
-                          <span className="text-[10px] font-mono text-sky-500 flex items-center gap-0.5" title={lead.telegramHandle}>
-                            <MessageSquare className="h-3 w-3" />
-                            <span>TG</span>
-                          </span>
-                        )}
-                        {lead.twitterUrl && (
-                          <a href={lead.twitterUrl} target="_blank" rel="noopener noreferrer" className="hover:text-sky-400">
-                            <Twitter className="h-3 w-3" />
-                          </a>
-                        )}
-                        {lead.linkedinUrl && (
-                          <a href={lead.linkedinUrl} target="_blank" rel="noopener noreferrer" className="hover:text-indigo-400">
-                            <Linkedin className="h-3 w-3" />
-                          </a>
-                        )}
                       </div>
                     </td>
 

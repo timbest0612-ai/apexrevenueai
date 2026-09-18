@@ -5,12 +5,12 @@ import firebaseConfig from '../../firebase-applet-config.json';
 
 const app = !getApps().length ? initializeApp(firebaseConfig) : getApp();
 
-/* CRITICAL: initializeFirestore with experimentalAutoDetectLongPolling enables reliable connection
+/* CRITICAL: initializeFirestore with experimentalForceLongPolling enables reliable instant connection
    in iframe sandboxes, container proxies, and corporate networks without 10-second stream timeouts. */
 let firestoreDb: Firestore;
 try {
   firestoreDb = initializeFirestore(app, {
-    experimentalAutoDetectLongPolling: true,
+    experimentalForceLongPolling: true,
   }, firebaseConfig.firestoreDatabaseId);
 } catch {
   firestoreDb = getFirestore(app, firebaseConfig.firestoreDatabaseId);
@@ -126,16 +126,14 @@ export function handleFirestoreError(error: unknown, operationType: OperationTyp
 
 export async function testConnection(): Promise<boolean> {
   try {
-    const fetchDocPromise = getDocFromServer(doc(db, 'test', 'connection'));
-    const timeoutPromise = new Promise<never>((_, reject) =>
-      setTimeout(() => reject(new Error('Firebase connection check timed out; continuing in resilient offline mode')), 6000)
-    );
-    await Promise.race([fetchDocPromise, timeoutPromise]);
+    await getDocFromServer(doc(db, 'test', 'connection'));
     console.log('Connected to persistent Firebase Firestore');
     return true;
   } catch (error) {
-    if (error instanceof Error) {
-      console.info('Firebase Firestore operating in resilient/offline mode:', error.message);
+    if (error instanceof Error && error.message.includes('the client is offline')) {
+      console.info('Firebase Firestore operating in resilient/offline mode: client is offline.');
+    } else {
+      console.info('Firebase Firestore connection notice:', error instanceof Error ? error.message : String(error));
     }
     return false;
   }

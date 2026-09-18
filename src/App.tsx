@@ -27,6 +27,9 @@ import { WorkWaitingPreservationModal } from './components/WorkWaitingPreservati
 import { SampleMediaStudioModal } from './components/SampleMediaStudioModal.js';
 import { DemoTutorialModal } from './components/DemoTutorialModal.js';
 import { PricingTiersView } from './components/PricingTiersView.js';
+import { OfferMatrixView } from './components/OfferMatrixView.js';
+import { BuyerDealRoomView } from './components/BuyerDealRoomView.js';
+import { ObjectionBattlecardView } from './components/ObjectionBattlecardView.js';
 import { AuthModal } from './components/AuthModal.js';
 import { isPlatformOwner, PLATFORM_OWNER_EMAIL } from './lib/firebase.js';
 import { 
@@ -58,6 +61,7 @@ export function App() {
   const [isCopilotOpen, setIsCopilotOpen] = useState<boolean>(false);
   const [isAuthModalOpen, setIsAuthModalOpen] = useState<boolean>(false);
   const [leadInitialQuery, setLeadInitialQuery] = useState<string>('');
+  const [activeOfferProduct, setActiveOfferProduct] = useState<string>('Apex AI Revenue System');
   const [massPitchInitialLeads, setMassPitchInitialLeads] = useState<DiscoveredLead[]>([]);
   const [isRefreshing, setIsRefreshing] = useState<boolean>(false);
   const [notificationToast, setNotificationToast] = useState<string | null>(null);
@@ -418,7 +422,8 @@ export function App() {
 
   // Step Navigation Helpers
   const handleNavigateTab = (tab: string) => {
-    setCurrentTab(tab);
+    const cleanTab = tab.startsWith('/') ? tab.slice(1) : tab;
+    setCurrentTab(cleanTab);
     // Auto-scroll main panel to top smoothly
     const mainElem = document.getElementById('main-viewport-panel');
     if (mainElem) mainElem.scrollTo({ top: 0, behavior: 'smooth' });
@@ -516,16 +521,31 @@ export function App() {
         category: (l.buyingIntentScore || 85) >= 80 ? 'HOT' : 'WARM',
         intentSignals: [
           `Discovered via Apex Lead Harvester (${l.industry || l.targetCategory || 'Market'})`,
-          `Verified deliverability status: ${l.verificationStatus || 'VALID'}`
+          `Verified deliverability status: ${l.verificationStatus || 'VALID'}`,
+          ...(l.detectedPainExcerpt ? [`Social Pain Signal [${(l.socialPlatform || 'Social').toUpperCase()}]: "${l.detectedPainExcerpt}"`] : [])
         ],
         recommendedAction: 'Send automated outreach email or sequence',
         confidence: 0.95,
         lastCalculated: new Date().toISOString()
       },
-      tags: ['lead-discovery', l.targetCategory?.toLowerCase() || 'business', 'verified-prospect'],
+      tags: [
+        'lead-discovery', 
+        l.targetCategory?.toLowerCase() || 'business', 
+        'verified-prospect',
+        ...(l.socialPlatform ? [`social-${l.socialPlatform}`] : []),
+        ...(l.painSeverity ? [`severity-${l.painSeverity.toLowerCase()}`] : [])
+      ],
       customFields: {
         techStack: (l.techStack || []).join(', '),
-        sourceProvider: l.sourceProvider || 'Apex Lead Harvester'
+        sourceProvider: l.sourceProvider || 'Apex Lead Harvester',
+        socialPlatform: l.socialPlatform || '',
+        socialHandle: l.socialHandle || '',
+        socialProfileUrl: l.socialProfileUrl || '',
+        detectedPainExcerpt: l.detectedPainExcerpt || '',
+        painSeverity: l.painSeverity || '',
+        productMatchReason: l.productMatchReason || '',
+        targetNiche: l.targetNiche || '',
+        matchedProductName: l.matchedProductName || '',
       },
       source: l.sourceProvider || 'Apex Lead Harvester',
       revenueTotal: 0,
@@ -534,8 +554,8 @@ export function App() {
           id: `timeline-${Date.now()}-${Math.random().toString(36).substring(2, 7)}`,
           contactId: '',
           type: 'lead_created',
-          title: 'Imported from Global Lead Discovery',
-          description: `Discovered from ${l.sourceProvider || 'Apex Engine'} (${l.jobTitle || 'Lead'} at ${l.companyName || l.schoolOrUniversity || 'Organization'}).`,
+          title: `Imported from ${l.socialPlatform ? l.socialPlatform.toUpperCase() + ' Scout' : 'Global Lead Discovery'}`,
+          description: `${l.detectedPainExcerpt ? `Pain Signal: "${l.detectedPainExcerpt}". ` : ''}Discovered from ${l.sourceProvider || 'Apex Engine'} (${l.jobTitle || 'Lead'} at ${l.companyName || l.schoolOrUniversity || 'Organization'}).`,
           timestamp: new Date().toISOString()
         }
       ],
@@ -859,6 +879,7 @@ export function App() {
                   currency={currency}
                   onNavigateTab={handleNavigateTab}
                   initialLeads={massPitchInitialLeads}
+                  onImportToCRM={handleImportDiscoveredLeads}
                 />
               )}
 
@@ -989,6 +1010,34 @@ export function App() {
                 <RevenueAttributionView
                   attribution={attribution}
                   currency={currency}
+                />
+              )}
+
+              {currentTab === 'offer_matrix' && (
+                <OfferMatrixView
+                  initialProduct={activeOfferProduct}
+                  onNavigateToDealRoom={(pName) => {
+                    setActiveOfferProduct(pName);
+                    handleNavigateTab('deal_room');
+                  }}
+                  onNavigateToPitch={(pitchContext) => {
+                    handleNavigateTab('masspitch');
+                    showToast('Offer stack transferred to Mass Pitch Studio');
+                  }}
+                />
+              )}
+
+              {currentTab === 'deal_room' && (
+                <BuyerDealRoomView
+                  initialProductName={activeOfferProduct}
+                  onNavigateToCRM={() => handleNavigateTab('crm')}
+                />
+              )}
+
+              {currentTab === 'objections' && (
+                <ObjectionBattlecardView
+                  onCopyScript={(s) => showToast('Counter-script copied to clipboard!')}
+                  onNavigateToSmartInbox={() => handleNavigateTab('inbox')}
                 />
               )}
 

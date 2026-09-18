@@ -712,11 +712,14 @@ export async function scoutGlobalHighVolumeLeads(filter: GlobalScoutFilter): Pro
     targetCategory === 'INDIVIDUALS' ? 'INDIVIDUALS' : 'BUSINESS'
   );
 
-  for (let i = 0; i < targetCount; i++) {
-    const loc = locations[i % locations.length];
-    const city = loc.cities[i % loc.cities.length];
+  const countToGenerate = Math.max(0, Math.min(targetCount - startIndex, pageSize));
 
-    const saltedIndex = i + seed;
+  for (let i = 0; i < countToGenerate; i++) {
+    const leadIndex = startIndex + i;
+    const loc = locations[leadIndex % locations.length];
+    const city = loc.cities[leadIndex % loc.cities.length];
+
+    const saltedIndex = leadIndex + seed;
     const firstName = FIRST_NAMES[(saltedIndex * 7 + 11) % FIRST_NAMES.length];
     const lastName = LAST_NAMES[(saltedIndex * 13 + 17) % LAST_NAMES.length];
     const fullName = `${firstName} ${lastName}`;
@@ -873,7 +876,7 @@ export async function scoutGlobalHighVolumeLeads(filter: GlobalScoutFilter): Pro
     const fitScore = Math.min(99, Math.max(80, 88 + ((saltedIndex * 11) % 12)));
 
     generatedLeads.push({
-      id: `scout-${targetCategory.toLowerCase()}-${filter.targetRegion.toLowerCase()}-${i + 1}`,
+      id: `scout-${targetCategory.toLowerCase()}-${filter.targetRegion.toLowerCase()}-${leadIndex + 1}`,
       firstName,
       lastName,
       fullName,
@@ -913,13 +916,12 @@ export async function scoutGlobalHighVolumeLeads(filter: GlobalScoutFilter): Pro
     });
   }
 
-  const returnSlice = generatedLeads.slice(startIndex, startIndex + pageSize);
   const avgIntent = Math.round(
-    returnSlice.reduce((acc, l) => acc + (l.buyingIntentScore || 85), 0) / Math.max(1, returnSlice.length)
+    generatedLeads.reduce((acc, l) => acc + (l.buyingIntentScore || 85), 0) / Math.max(1, generatedLeads.length)
   );
 
   return {
-    leads: returnSlice,
+    leads: generatedLeads,
     totalScouted: targetCount,
     verifiedDeliverableCount: targetCount,
     avgIntentScore: avgIntent || 92,

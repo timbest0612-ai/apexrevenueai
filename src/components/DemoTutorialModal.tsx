@@ -135,6 +135,89 @@ export const DemoTutorialModal: React.FC<DemoTutorialModalProps> = ({
       ],
       actionLabel: 'Open Deliverability Center',
       targetTab: 'deliverability'
+    },
+    {
+      id: 'offer_matrix',
+      badge: 'Step 6: Grand Slam Offer & Profit',
+      title: 'How to Engineer Irresistible Offers & Boost Order Values',
+      rating: '+30%–60% AOV',
+      description: 'Use the Alex Hormozi $100M Value Equation, 1-click checkout order bumps, and risk-reversal guarantees to eliminate buyer price resistance.',
+      highlights: [
+        '1. Open "Grand Slam Offer Studio" in the left sidebar under OFFER & BUYER CONVERSION.',
+        '2. Specify your Product Name, Core Price, Primary Buyer Pain, and Dream Outcome.',
+        '3. Tune the Value Equation Sliders (Dream Outcome, Certainty, Speed to Value, and Effort Reduction).',
+        '4. Toggle 1-Click Order Bumps (DNS Concierge, Pitch Asset Vault) to instantly add $200–$500 per customer.',
+        '5. Select your Risk-Reversal Guarantee (e.g. 30-Day Milestone or 50/50 Shared Escrow).',
+        '6. Click "Copy Offer Stack" to use in pitches or "Launch Buyer Deal Room".'
+      ],
+      actionLabel: 'Open Offer Studio',
+      targetTab: 'offer_matrix'
+    },
+    {
+      id: 'deal_room',
+      badge: 'Step 7: Buyer Deal Room & MAP',
+      title: 'How to Close Deals Faster with a Mutual Action Plan',
+      rating: '50% Faster Close',
+      description: 'Give decision-makers and CFOs a dedicated Digital Sales Room featuring an interactive Cost of Inaction (COI) calculator and 30-day onboarding roadmap.',
+      highlights: [
+        '1. Open "Buyer Deal Room & MAP" from the sidebar.',
+        '2. Adjust the Interactive Buyer ROI Modeler: set rep team size and wasted hours to show the buyer their exact monthly Cost of Inaction (COI).',
+        '3. Review the 6-step Mutual Action Plan (MAP) with clear milestone deliverables and owners (BUYER vs SELLER).',
+        '4. Click "1-Click CFO Memo" to view and copy a formal internal business justification memo.',
+        '5. Click "Share Room with Buyer" to send a clean personalized link or use "Approve Proposal" for digital sign-off.'
+      ],
+      actionLabel: 'Open Buyer Deal Room',
+      targetTab: 'deal_room'
+    },
+    {
+      id: 'objections',
+      badge: 'Step 8: Objection Decimator',
+      title: 'How to Decimate Objections & Flank Competitors',
+      rating: '+56% Close Rate',
+      description: 'Arm yourself with psychological reframes, word-for-word counter scripts, and competitor battlecards for price, timing, and incumbent hesitations.',
+      highlights: [
+        '1. Open "Objection Decimator" from the left sidebar.',
+        '2. Filter by category: Price/Budget, Competitor, Timing, Complexity, or Trust/Proof.',
+        '3. Inspect the hidden psychological fear behind what the buyer says.',
+        '4. Click "Copy Script" to grab battle-tested email/WhatsApp responses ready to paste into Smart Inbox.',
+        '5. Check the Competitor Flanking Battlecards to plant strategic landmine questions when prospects mention Apollo, ZoomInfo, or traditional SDR agencies.'
+      ],
+      actionLabel: 'Open Objection Decimator',
+      targetTab: 'objections'
+    },
+    {
+      id: 'social_scout',
+      badge: 'Step 9: Omnichannel Social Scout',
+      title: 'Scout Prospects Across 9 Social Networks & Forums with Active Pain Points',
+      rating: 'Facebook • YT • X • LinkedIn • TikTok • IG • Pinterest • Forums • Snapchat',
+      description: 'Find real prospects talking about problems your product solves right now across Facebook Groups, YouTube, LinkedIn, X, TikTok, Instagram, Pinterest, Discussion Forums (Reddit/Quora), and Snapchat.',
+      highlights: [
+        '1. Open "Global Lead Finder" (Sidebar #3) and scroll to the "Omnichannel Social Scout & Pain Extractor" panel.',
+        '2. Enter your Product Name, Product Description, and Target Niches (e.g., "B2B SaaS, Agencies, E-Commerce").',
+        '3. Select your target Social Network or choose "All Channels" to scout across all 9 platforms simultaneously.',
+        '4. AI dynamically infers the core buyer pain points, target persona, and live social search queries for your product.',
+        '5. Click "Scout Social Prospects with Active Pain" to extract decision-makers, direct social handles (@founder_mike), and exact quoted pain point excerpts.',
+        '6. Filter by Pain Severity (🔥 Critical, ⚡ High, Moderate) to prioritize prospects ready to buy immediately, then 1-click import to CRM or download CSV.'
+      ],
+      actionLabel: 'Go to Social Scout',
+      targetTab: 'discover'
+    },
+    {
+      id: 'vercel_deployment',
+      badge: 'Step 10: Vercel Deployment via GitHub',
+      title: 'How to Deploy Your Live App to Vercel via GitHub (Step-by-Step)',
+      rating: 'Zero-Config Edge Deploy',
+      description: 'Follow this proven checklist to deploy your updated application to Vercel using your GitHub repository so all your new features go live worldwide.',
+      highlights: [
+        '1. Export or Push to GitHub: In the AI Studio top bar / settings menu, select "Export to GitHub" (or push your repository: `git add .`, `git commit -m "feat: social scout & offer studio"`, `git push origin main`).',
+        '2. Log in to Vercel: Visit https://vercel.com and click "Add New..." -> "Project".',
+        '3. Import GitHub Repo: Select your GitHub account and find this repository from the list, then click "Import".',
+        '4. Configure Project: Preset is automatically detected as "Vite". The Root Directory is `./`, Build Command is `npm run build`, and Output Directory is `dist`.',
+        '5. Environment Variables: If you use custom Firebase or Gemini keys, expand the "Environment Variables" section and paste your keys (e.g., VITE_FIREBASE_API_KEY).',
+        '6. Click "Deploy": Vercel builds and deploys your high-performance app within 40 seconds, giving you a custom live URL (e.g. `https://your-app.vercel.app`) with automatic SSL and global CDN!'
+      ],
+      actionLabel: 'Explore System',
+      targetTab: 'discover'
     }
   ];
 

@@ -20,7 +20,10 @@ import {
   FileCheck,
   Zap,
   Globe,
-  Webhook
+  Webhook,
+  Gem,
+  Briefcase,
+  Swords
 } from 'lucide-react';
 
 export interface PipelineStep {
@@ -45,10 +48,13 @@ export const PIPELINE_STEPS: PipelineStep[] = [
   { id: 'webhooks', name: 'Webhooks & Cloud Sync', stageName: '10. WEBHOOKS', category: 'Ingestion', icon: Webhook, description: 'Live WhatsApp, Gmail, Outlook webhook sync & Firestore' },
   { id: 'automations', name: 'Sequences & Flows', stageName: '11. AUTOMATE', category: 'Automation', icon: GitFork, description: 'Visual event-driven branching canvas' },
   { id: 'attribution', name: 'Revenue Attribution', stageName: '12. ATTRIBUTE', category: 'Analytics', icon: TrendingUp, description: 'Closed-loop ROI & multi-touch channel revenue' },
-  { id: 'deliverability', name: 'DNS & Deliverability', stageName: '13. INFRA', category: 'Infrastructure', icon: MailCheck, description: 'SPF, DKIM, DMARC & domain warmup monitor' },
-  { id: 'landing_pages', name: 'Landing Pages & Forms', stageName: '14. CONVERT', category: 'Acquisition', icon: Layers, description: 'High-converting capture funnels & lead magnets' },
-  { id: 'billing', name: 'Plans & Credits', stageName: '15. USAGE', category: 'Account', icon: CreditCard, description: 'Manage quotas, credit top-ups & tiers' },
-  { id: 'settings', name: 'Workspace Settings', stageName: '16. CONFIG', category: 'System', icon: Settings, description: 'API integrations, webhook dispatch & team roles' },
+  { id: 'offer_matrix', name: 'Grand Slam Offer Studio', stageName: '13. OFFER ARCH', category: 'Conversion', icon: Gem, description: '$100M Value equation, order bumps & risk-reversal guarantees' },
+  { id: 'deal_room', name: 'Buyer Deal Room & MAP', stageName: '14. DEAL ROOM', category: 'Closing', icon: Briefcase, description: 'Digital sales room, buyer COI & Mutual Action Plan' },
+  { id: 'objections', name: 'Objection Decimator', stageName: '15. BATTLECARDS', category: 'Objections', icon: Swords, description: 'Psychological reframes & competitor flanking scripts' },
+  { id: 'deliverability', name: 'DNS & Deliverability', stageName: '16. INFRA', category: 'Infrastructure', icon: MailCheck, description: 'SPF, DKIM, DMARC & domain warmup monitor' },
+  { id: 'landing_pages', name: 'Landing Pages & Forms', stageName: '17. CONVERT', category: 'Acquisition', icon: Layers, description: 'High-converting capture funnels & lead magnets' },
+  { id: 'billing', name: 'Plans & Credits', stageName: '18. USAGE', category: 'Account', icon: CreditCard, description: 'Manage quotas, credit top-ups & tiers' },
+  { id: 'settings', name: 'Workspace Settings', stageName: '19. CONFIG', category: 'System', icon: Settings, description: 'API integrations, webhook dispatch & team roles' },
 ];
 
 interface PipelineNavigationProps {

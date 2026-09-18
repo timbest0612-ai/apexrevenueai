@@ -58,7 +58,9 @@ const WORKFLOW_PILLARS = [
   { id: 'verify', label: '2. Verify', targetTab: 'verify', description: 'Zero-Bounce & Anti-Spam' },
   { id: 'crm', label: '3. Pipeline', targetTab: 'crm', description: 'Contacts, Scoring & Inbox' },
   { id: 'campaigns', label: '4. Engage', targetTab: 'campaigns', description: 'Sequences & Mass Pitch' },
-  { id: 'attribution', label: '5. ROI', targetTab: 'attribution', description: 'Closed-Loop Revenue' },
+  { id: 'offer_matrix', label: '5. Offer Stack', targetTab: 'offer_matrix', description: 'Grand Slam Value & Bumps' },
+  { id: 'deal_room', label: '6. Deal Room', targetTab: 'deal_room', description: 'Digital Sales Room & MAP' },
+  { id: 'attribution', label: '7. ROI', targetTab: 'attribution', description: 'Closed-Loop Revenue' },
 ];
 
 export const FigmaAppHeader: React.FC<FigmaAppHeaderProps> = ({

@@ -21,7 +21,10 @@ import {
   Webhook,
   Plus,
   Compass,
-  Check
+  Check,
+  Gem,
+  Briefcase,
+  Swords
 } from 'lucide-react';
 import { Organization, UserRole } from '../types.js';
 
@@ -90,6 +93,14 @@ export const SidebarNav: React.FC<SidebarNavProps> = ({
         { id: 'automations', label: 'Sequences & Flows', icon: GitFork },
         { id: 'landing_pages', label: 'Landing Pages & Forms', icon: Layers },
         { id: 'attribution', label: 'Revenue Attribution', icon: TrendingUp, badge: 'ROI', badgeClass: 'bg-emerald-500/15 text-emerald-600 dark:text-emerald-400 font-bold' },
+      ],
+    },
+    {
+      title: 'OFFER & BUYER CONVERSION',
+      items: [
+        { id: 'offer_matrix', label: 'Grand Slam Offer Studio', icon: Gem, badge: 'Profit x3', badgeClass: 'bg-emerald-500/20 text-emerald-600 dark:text-emerald-400 font-bold' },
+        { id: 'deal_room', label: 'Buyer Deal Room & MAP', icon: Briefcase, badge: 'Close 2x', badgeClass: 'bg-indigo-500/20 text-indigo-600 dark:text-indigo-400 font-bold' },
+        { id: 'objections', label: 'Objection Decimator', icon: Swords, badge: 'Battlecards', badgeClass: 'bg-amber-500/20 text-amber-700 dark:text-amber-400 font-semibold' },
       ],
     },
   ];

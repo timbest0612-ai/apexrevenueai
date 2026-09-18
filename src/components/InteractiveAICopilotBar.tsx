@@ -45,13 +45,13 @@ export const InteractiveAICopilotBar: React.FC<InteractiveAICopilotBarProps> = (
 
   const quickPrompts = [
     { label: '🚀 Pitch 2k–5k at Once', prompt: 'Scout 2,000 clients selling B2B SaaS and send 1 mass pitch to all of them at once' },
+    { label: '💎 Grand Slam Offer & Bumps', prompt: 'Show Grand Slam Offer Studio to engineer order bumps, upsells and risk reversal guarantees' },
+    { label: '🤝 Buyer Deal Room (MAP)', prompt: 'Open Buyer Deal Room with interactive Cost of Inaction and 30-day Mutual Action Plan' },
+    { label: '⚔️ Kill Objections', prompt: 'Show objection counter scripts for price, competitor and timing hesitations' },
     { label: '📡 Buying Signals', prompt: 'Show active buying intent signals and executive hires' },
     { label: '📥 Smart Inbox', prompt: 'Show unread smart inbox replies and sentiment classification' },
     { label: '🛡️ Audit Spam Words', prompt: 'Audit cold email copy for spam words and deliverability score' },
     { label: '🔥 Top Hot Leads', prompt: 'Show my hottest leads with intent score > 85' },
-    { label: '💰 Revenue ROI', prompt: 'What is our total attributed revenue breakdown by channel?' },
-    { label: '🔍 Find Agency Founders', prompt: 'Find 300 verified digital agency founders in Lagos' },
-    { label: '✉️ Draft Cold Sequence', prompt: 'Create a 3-step cold email sequence for B2B SaaS' },
   ];
 
   const handleAsk = async (textToAsk?: string) => {

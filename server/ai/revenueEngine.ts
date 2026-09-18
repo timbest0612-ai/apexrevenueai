@@ -277,6 +277,66 @@ export async function processAICommand(userPrompt: string): Promise<AICommandRes
     };
   }
 
+  // 6b. Grand Slam Offer & Profit Bumps
+  if (q.includes('offer') || q.includes('bump') || q.includes('guarantee') || q.includes('value equation') || q.includes('upsell') || q.includes('downsell')) {
+    return {
+      summary: `Grand Slam Offer Architecture loaded: Turn your product into an irresistible no-brainer offer with $100M Value Equation scoring, 1-click checkout order bumps, and risk-reversal guarantees.`,
+      actionTaken: 'OFFER_STUDIO_LOADED',
+      category: 'campaign',
+      data: {
+        score: '96/100',
+        projectedAovBoost: '+34%',
+        activeGuarantee: '30-Day Milestone Performance Guarantee'
+      },
+      suggestedRoute: '/offer_matrix',
+      suggestedFollowUps: [
+        'Model order bump take-rates (+28% AOV)',
+        'Configure 50/50 Milestone Escrow Guarantee',
+        'Launch dedicated Buyer Deal Room for this offer'
+      ]
+    };
+  }
+
+  // 6c. Buyer Deal Room & Mutual Action Plan (MAP)
+  if (q.includes('deal room') || q.includes('mutual action plan') || q.includes('map') || q.includes('cost of inaction') || q.includes('digital sales room') || q.includes('coi')) {
+    return {
+      summary: `Buyer Deal Room & Mutual Action Plan (MAP) initialized: Give executive decision-makers complete visibility with an interactive Cost of Inaction (COI) calculator, 30-day onboarding milestones, and a 1-click CFO justification memo.`,
+      actionTaken: 'DEAL_ROOM_INITIALIZED',
+      category: 'scoring',
+      data: {
+        paybackPeriod: '18 Days',
+        costOfInaction: '$14,200/mo',
+        annualRoi: '8.4x'
+      },
+      suggestedRoute: '/deal_room',
+      suggestedFollowUps: [
+        'Copy 1-Click Executive CFO Memo',
+        'Share customized Deal Room link with prospect',
+        'Review 30-day onboarding milestones'
+      ]
+    };
+  }
+
+  // 6d. Objection Decimator & Battlecards
+  if (q.includes('objection') || q.includes('too expensive') || q.includes('expensive') || q.includes('competitor') || q.includes('battlecard') || q.includes('reframe') || q.includes('revisit')) {
+    return {
+      summary: `Objection Decimator activated: Word-for-word psychological reframes for Price/Budget, Incumbent Competitors, and Timing hesitation with matched case study proof assets.`,
+      actionTaken: 'OBJECTION_DECIMATOR_LOADED',
+      category: 'scoring',
+      data: {
+        priceSaveRate: '+42%',
+        competitorDefenseRate: '+56%',
+        activeFramework: 'Acknowledge -> Reframe with Cost of Inaction -> Inject Proof'
+      },
+      suggestedRoute: '/objections',
+      suggestedFollowUps: [
+        'Copy Price Objection counter script',
+        'Review Apollo / ZoomInfo Flanking Battlecard',
+        'Paste counter script directly into Smart Inbox'
+      ]
+    };
+  }
+
   // 4. Revenue, Financials & Attribution
   if (q.includes('revenue') || q.includes('attribution') || q.includes('mrr') || q.includes('how much money') || q.includes('roi') || q.includes('funnel') || q.includes('channel breakdown')) {
     const totalRev = db.revenueAttribution.totalRevenue;

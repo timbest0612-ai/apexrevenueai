@@ -179,6 +179,18 @@ export type DomainProviderFilter =
   | 'CORPORATE_CUSTOM' 
   | 'CRYPTO_WEB3_DOMAINS';
 
+export type SocialMediaPlatform = 
+  | 'all'
+  | 'facebook' 
+  | 'youtube' 
+  | 'linkedin' 
+  | 'twitter' 
+  | 'tiktok' 
+  | 'instagram' 
+  | 'pinterest' 
+  | 'forums' 
+  | 'snapchat';
+
 export interface LeadDiscoveryFilter {
   naturalLanguage?: string;
   targetCategory?: LeadTargetCategory;
@@ -189,6 +201,13 @@ export interface LeadDiscoveryFilter {
   city?: string;
   industry?: string;
   subIndustry?: string;
+  // Product-Driven & Niche-Driven Prospecting fields
+  productName?: string;
+  productDescription?: string;
+  targetNiches?: string[];
+  socialPlatform?: SocialMediaPlatform;
+  socialPlatforms?: SocialMediaPlatform[];
+  detectedPainKeywords?: string[];
   // Student & Academic fields
   schoolOrUniversity?: string;
   department?: string;
@@ -209,7 +228,7 @@ export interface LeadDiscoveryFilter {
   targetAudience?: string;
   whatTheySell?: string;
   userGoal?: string;
-  provider?: 'auto' | 'apollo' | 'hunter' | 'tomba' | 'global_registry';
+  provider?: 'auto' | 'apollo' | 'hunter' | 'tomba' | 'global_registry' | 'social_omni';
 }
 
 export interface DiscoveredLead {
@@ -222,11 +241,21 @@ export interface DiscoveredLead {
   jobTitle: string;
   seniority: string;
   department?: string;
-  companyName: string; // Or University / DAO / Brand Name
+  companyName: string; // Or University / DAO / Brand Name / Social Profile
   companyDomain: string;
   domainProviderType?: string;
   industry: string;
   targetCategory?: LeadTargetCategory;
+  // Social Intelligence & Pain Extraction
+  socialPlatform?: SocialMediaPlatform;
+  socialHandle?: string;
+  socialProfileUrl?: string;
+  detectedPainExcerpt?: string;
+  painSeverity?: 'CRITICAL' | 'HIGH' | 'MODERATE';
+  productMatchReason?: string;
+  matchedProductName?: string;
+  targetNiche?: string;
+  postEngagementSnippet?: string;
   painPoint?: string;
   targetAudience?: string;
   whatTheySell?: string;
@@ -720,6 +749,125 @@ export interface SandboxWorkspaceState {
   showPreservationModal: boolean;
   showWowJourneyModal: boolean;
 }
+
+// ==========================================
+// SELLER PROFITABILITY & BUYER PAIN ENGINES
+// ==========================================
+
+export interface GrandSlamOffer {
+  id: string;
+  productName: string;
+  targetBuyerRole: string;
+  primaryBuyerPain: string;
+  dreamOutcome: string;
+  corePrice: number;
+  deliveryFormat: 'SaaS' | 'DONE_FOR_YOU' | 'HYBRID_CONSULTING' | 'DIGITAL_PRODUCT' | 'PHYSICAL_GOODS';
+  valueScores: {
+    dreamOutcomeScore: number; // 1-10
+    perceivedLikelihood: number; // 1-10
+    timeDelayReduction: number; // 1-10
+    effortSacrificeReduction: number; // 1-10
+  };
+  orderBumps: OrderBump[];
+  upsellPaths: UpsellPath[];
+  downsellOptions: DownsellOption[];
+  guarantees: GuaranteeOption[];
+  activeGuaranteeId: string;
+}
+
+export interface OrderBump {
+  id: string;
+  title: string;
+  price: number;
+  tagline: string;
+  perceivedValue: number;
+  takeRatePercentage: number;
+  active: boolean;
+}
+
+export interface UpsellPath {
+  id: string;
+  title: string;
+  price: number;
+  recurringMonthly: boolean;
+  valueProposition: string;
+  profitMargin: number; // e.g. 85%
+  active: boolean;
+}
+
+export interface DownsellOption {
+  id: string;
+  title: string;
+  price: number;
+  paymentSplit: string; // e.g. "3 x $199"
+  preservesMargin: number; // percentage
+  idealFor: string;
+}
+
+export interface GuaranteeOption {
+  id: string;
+  type: 'UNCONDITIONAL' | 'MILESTONE_PERFORMANCE' | 'SHARED_ESCROW' | 'RISK_FREE_PILOT';
+  title: string;
+  description: string;
+  buyerRiskReduction: string;
+  conversionMultiplier: string;
+}
+
+export interface BuyerDealRoom {
+  id: string;
+  dealName: string;
+  clientCompanyName: string;
+  clientDecisionMaker: string;
+  clientEmail: string;
+  sellerProductName: string;
+  contractValue: number;
+  status: 'DRAFT' | 'SHARED_WITH_BUYER' | 'IN_REVIEW' | 'STAKEHOLDER_APPROVAL' | 'ACCEPTED' | 'ACTIVE';
+  buyerPainSummary: string;
+  prescribedSolution: string;
+  buyerRoiMetrics: {
+    currentWeeklyHoursLost: number;
+    currentMonthlyCostOfInaction: number;
+    projectedMonthlyNetGain: number;
+    paybackPeriodDays: number;
+    expected12MonthRoiMultiple: number;
+  };
+  mutualActionPlan: DealMilestone[];
+  selectedAddonIds: string[];
+  lastViewedAt?: string;
+  acceptedAt?: string;
+}
+
+export interface DealMilestone {
+  id: string;
+  stepNumber: number;
+  title: string;
+  targetTimeline: string;
+  owner: 'BUYER' | 'SELLER' | 'JOINT';
+  status: 'COMPLETED' | 'IN_PROGRESS' | 'PENDING';
+  verificationDeliverable: string;
+}
+
+export interface ObjectionCard {
+  id: string;
+  category: 'PRICE_BUDGET' | 'COMPETITOR' | 'TIMING' | 'COMPLEXITY' | 'TRUST_PROOF';
+  buyerObjectionText: string;
+  psychologicalFear: string;
+  theReframeStrategy: string;
+  battleTestedScript: string;
+  proofAssetSnippet: string;
+  winRateImpact: string;
+}
+
+export interface CompetitorBattlecard {
+  id: string;
+  competitorName: string;
+  competitorCategory: string;
+  theirWeakness: string;
+  ourUnfairAdvantage: string;
+  switchingEaseScore: string;
+  landmineToPlant: string; // Question to prompt the buyer to ask competitor
+}
+
 
 
 

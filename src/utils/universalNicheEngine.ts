@@ -290,3 +290,106 @@ export function inferNicheTargeting(
     defaultPitchBody: `Hi {{first_name}},\n\nI was reviewing {{company}}\'s work in ${coreNiche} across {{city}}.\n\nMany organizations in {{target_audience}} share that {{pain_point}} is their main bottleneck.\n\nWe provide {{my_offer}}, which directly resolves this friction to accelerate revenue.\n\nWould you be open to a quick 5-minute conversation on how this would work for {{company}}?\n\nBest regards,\n{{first_name}}`
   };
 }
+
+// Social Media Platforms definition
+export const ALL_SOCIAL_PLATFORMS = [
+  { id: 'all', name: 'All Social & Forums', iconName: 'Globe', badge: 'Omni-Channel' },
+  { id: 'linkedin', name: 'LinkedIn', iconName: 'Linkedin', badge: 'B2B & Execs' },
+  { id: 'twitter', name: 'X (Twitter)', iconName: 'Twitter', badge: 'Tech & Founders' },
+  { id: 'facebook', name: 'Facebook Groups & Pages', iconName: 'Facebook', badge: 'Communities' },
+  { id: 'youtube', name: 'YouTube Channels & Creators', iconName: 'Youtube', badge: 'Video & Podcasts' },
+  { id: 'tiktok', name: 'TikTok Creators & Brands', iconName: 'Video', badge: 'E-com & DTC' },
+  { id: 'instagram', name: 'Instagram Creators & SMBs', iconName: 'Instagram', badge: 'Visual & DMs' },
+  { id: 'pinterest', name: 'Pinterest Storefronts', iconName: 'Bookmark', badge: 'Shopping & Decor' },
+  { id: 'forums', name: 'Forums (Reddit, Quora, Discord)', iconName: 'MessageSquare', badge: 'Pain Threads' },
+  { id: 'snapchat', name: 'Snapchat Brands & Spotlight', iconName: 'Zap', badge: 'Gen Z & Apps' }
+] as const;
+
+export interface ProductSocialProfile {
+  productName: string;
+  productDescription: string;
+  detectedNiches: string[];
+  corePainSolved: string;
+  idealPersona: string;
+  socialSearchQueries: Record<string, string[]>;
+}
+
+export function analyzeProductProfile(
+  productName: string = 'Apex AI Revenue Engine',
+  productDescription: string = 'Automated 100k verified lead mining, zero-bounce email verification, and 1-click mass pitch to eliminate domain burn and 10x meetings booked',
+  userNiches: string[] = ['B2B SaaS', 'Digital Agencies', 'E-commerce Brands']
+): ProductSocialProfile {
+  const pName = productName.trim() || 'Apex Revenue AI Engine';
+  const pDesc = productDescription.trim() || 'Customer acquisition, lead mining, automated outreach & high-ticket deal closing software';
+  const combined = `${pName} ${pDesc} ${userNiches.join(' ')}`.toLowerCase();
+
+  let corePain = 'Struggling with slow manual prospecting, high customer acquisition costs, and inconsistent pipeline';
+  let idealPersona = 'Business Owners, Growth Directors & Founders';
+
+  if (combined.includes('email') || combined.includes('pitch') || combined.includes('outbound') || combined.includes('deliverability') || combined.includes('spam')) {
+    corePain = 'Burning sending domains, hitting spam folders, and wasting hours manually hunting decision maker emails';
+    idealPersona = 'VP of Sales, CROs, SDR Leaders & Agency Founders';
+  } else if (combined.includes('ecommerce') || combined.includes('shopify') || combined.includes('store') || combined.includes('physical') || combined.includes('brand')) {
+    corePain = 'Skyrocketing ad costs, low average order values, and abandoned checkouts eating away profit margins';
+    idealPersona = 'DTC Brand Owners, E-commerce Directors & Shopify Merchants';
+  } else if (combined.includes('content') || combined.includes('video') || combined.includes('reels') || combined.includes('youtube') || combined.includes('edit')) {
+    corePain = 'Expensive and slow freelance video editors causing creator burnout and inconsistent social reach';
+    idealPersona = 'Content Creators, Media Agency Founders & YouTube Channel Operators';
+  } else if (combined.includes('crypto') || combined.includes('web3') || combined.includes('token') || combined.includes('defi')) {
+    corePain = 'Difficulty attracting high-net-worth liquidity providers and navigating Telegram noise to reach real investors';
+    idealPersona = 'Web3 Protocol Founders, Tokenomics Leads & DAO Growth Heads';
+  } else if (combined.includes('real estate') || combined.includes('property') || combined.includes('mortgage')) {
+    corePain = 'Paying huge fees for shared Zillow/portal leads that never pick up the phone and losing exclusive listings';
+    idealPersona = 'Managing Brokers, Real Estate Team Leads & Commercial Investors';
+  }
+
+  const queries: Record<string, string[]> = {
+    linkedin: [
+      `"${corePain.slice(0, 30)}" "founder" OR "VP Sales"`,
+      `"tired of" Apollo OR ZoomInfo OR "cold outreach"`,
+      `"recommendations for" ${userNiches[0] || 'software'}`
+    ],
+    twitter: [
+      `"anyone know a tool for" ${userNiches[0] || 'pipeline'}`,
+      `"struggling with" OR "frustrated by" ${pName.slice(0, 20)}`,
+      `"need a better solution for" ${corePain.slice(0, 25)}`
+    ],
+    facebook: [
+      `Group post: "How do you guys handle ${corePain.slice(0, 35)}?"`,
+      `"Can anyone recommend software for" ${pName}`
+    ],
+    youtube: [
+      `Comments on "How to solve ${corePain.slice(0, 30)}"`,
+      `"Looking for an alternative to" legacy tools`
+    ],
+    tiktok: [
+      `#${(userNiches[0] || 'business').replace(/[^a-zA-Z]/g, '')} "behind the scenes struggling with"`,
+      `"My biggest problem running my business"`
+    ],
+    instagram: [
+      `DMs and comment complaints about ${corePain.slice(0, 25)}`,
+      `Bio: "Helping brands solve" looking for partner tools`
+    ],
+    pinterest: [
+      `Store boards searching for ${pName} solutions`,
+      `Shopify conversion and order bump pins`
+    ],
+    forums: [
+      `[r/SaaS] "How are you guys solving ${corePain.slice(0, 35)}?"`,
+      `[IndieHackers] "Need feedback on alternatives for ${pName}"`
+    ],
+    snapchat: [
+      `Public stories: "Anyone know how to fix this bottleneck?"`
+    ]
+  };
+
+  return {
+    productName: pName,
+    productDescription: pDesc,
+    detectedNiches: userNiches.length > 0 ? userNiches : ['B2B Solutions', 'Digital Growth'],
+    corePainSolved: corePain,
+    idealPersona,
+    socialSearchQueries: queries
+  };
+}
+
